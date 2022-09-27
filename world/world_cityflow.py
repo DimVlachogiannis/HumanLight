@@ -177,6 +177,9 @@ class World(object):
         with open(cityflow_config) as f:
             cityflow_config = json.load(f)
         self.roadnet = self._get_roadnet(cityflow_config)
+        with open('data/' + cityflow_config['flowFile']) as f:
+            self.flows_list  = json.load(f)
+
         self.RIGHT = True  # vehicles moves on the right side, currently always set to true due to CityFlow's mechanism
         self.interval = cityflow_config["interval"]
 
@@ -237,17 +240,22 @@ class World(object):
         self.info_functions = {
             "vehicles": (lambda: self.eng.get_vehicles(include_waiting=True)),
             "lane_count": self.eng.get_lane_vehicle_count,
+            "passenger_lane_count": self.get_passengers_per_lane,
             "lane_waiting_count": self.eng.get_lane_waiting_vehicle_count,
+            "lane_passenger_waiting_count": self.get_passengers_waiting_per_lane,
             "lane_vehicles": self.eng.get_lane_vehicles,
             "time": self.eng.get_current_time,
             "vehicle_distance": self.eng.get_vehicle_distance,
             "pressure": self.get_pressure,
+            "passenger_pressure": self.get_passenger_pressure,
             "lane_waiting_time_count": self.get_lane_waiting_time_count,
             "lane_delay": self.get_lane_delay,
+            "passenger_lane_delay": self.get_passenger_lane_delay,
             "vehicle_trajectory": self.get_vehicle_trajectory,
             "history_vehicles": self.get_history_vehicles,
             "phase": self.get_cur_phase,
             "throughput": self.get_cur_throughput,
+            "passenger_throughput": self.get_cur_passenger_throughput,
             "averate_travel_time": self.get_average_travel_time
             # "action_executed": self.get_executed_action
         }
@@ -329,6 +337,15 @@ class World(object):
                 throughput += 1
         return throughput
 
+    def get_cur_passenger_throughput(self):
+        throughput = 0
+        for dic in self.dic_vehicle_arrive_leave_time:
+            vehicle = self.dic_vehicle_arrive_leave_time[dic]
+            if (not np.isnan(vehicle["cost_time"])) and vehicle["leave_time"] <= self.eng.get_current_time():
+                flow_id = int(dic.split('_')[1])
+                throughput += self.flows_list[flow_id]['vehicle']['occupancy']
+        return throughput
+
     def get_executed_action(self):
         actions = []
         for i in self.intersections:
@@ -340,6 +357,27 @@ class World(object):
         for i in self.intersections:
             phases.append(i.current_phase)
         return phases
+
+    def get_passengers_waiting_per_lane(self):
+        '''
+        This function returns the passengers waiting per lane.
+        CityFlow has only a count function for the waiting vehilces.
+        This function tracks the waiting vehicle ids (speed < 0.1m/s) and
+        matches the corresponding occupancies.
+        '''
+        vehicle_speeds = self.eng.get_vehicle_speed()
+        vehicles = self.eng.get_lane_vehicles()
+        passengers_queue = {}
+        for lane, vehicle_list in vehicles.items():
+            passengers_queue[lane] = 0
+            vehicles[lane] = [veh for veh in vehicle_list if vehicle_speeds[veh] < 0.1] 
+            assert len(vehicles[lane]) == self.eng.get_lane_waiting_vehicle_count()[lane],"Error in passenger queue calculation"
+
+            if len(vehicles[lane]) > 0:
+                passengers_queue[lane] += sum([int(self.flows_list[int(veh.split('_')[1])]['vehicle']['occupancy']) for veh in vehicles[lane]]) 
+
+        return passengers_queue
+
 
     def get_pressure(self):
         vehicles = self.eng.get_lane_vehicle_count()
@@ -363,6 +401,31 @@ class World(object):
                     pressure += vehicles[lane]
                 if lane in out_lanes:
                     pressure -= vehicles[lane]
+            pressures[i.id] = pressure
+        return pressures
+
+    def get_passenger_pressure(self):
+        passngers = self.get_passengers_per_lane()
+        pressures = {}
+        for i in self.intersections:
+            pressure = 0
+            in_lanes = []
+            for road in i.in_roads:
+                from_zero = (road["startIntersection"] == i.id) if self.RIGHT else (
+                        road["endIntersection"] == i.id)
+                for n in range(len(road["lanes"]))[::(1 if from_zero else -1)]:
+                    in_lanes.append(road["id"] + "_" + str(n))
+            out_lanes = []
+            for road in i.out_roads:
+                from_zero = (road["endIntersection"] == i.id) if self.RIGHT else (
+                        road["startIntersection"] == i.id)
+                for n in range(len(road["lanes"]))[::(1 if from_zero else -1)]:
+                    out_lanes.append(road["id"] + "_" + str(n))
+            for lane in passngers.keys():
+                if lane in in_lanes:
+                    pressure += passngers[lane]
+                if lane in out_lanes:
+                    pressure -= passngers[lane]
             pressures[i.id] = pressure
         return pressures
 
@@ -397,6 +460,18 @@ class World(object):
             for vehicle in lane_vehicles[lane]:
                 vehicle_lane[vehicle] = lane
         return vehicle_lane
+
+    def get_passengers_per_lane(self):
+        # get the current lane of each vehicle. {vehicle_id: lane_id}
+        passengers_per_lane = {}
+        lane_vehicles = self.eng.get_lane_vehicles()
+        for lane in self.all_lanes:
+            passengers_per_lane[lane] = 0
+            if len(lane_vehicles[lane]) > 0:
+                for vehicle in lane_vehicles[lane]:
+                    flow_id = int(vehicle.split('_')[1])
+                    passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+        return passengers_per_lane
 
     def get_vehicle_waiting_time(self):
         # the waiting time of vehicle since last halt.
@@ -440,6 +515,30 @@ class World(object):
                 lane_avg_speed = self.all_lanes_speed[lane]
             else:
                 lane_avg_speed /= lane_vehicle_count
+            lane_delay[lane] = 1 - lane_avg_speed / self.all_lanes_speed[lane]
+        return lane_delay
+
+    def get_passenger_lane_delay(self):
+        # the delay of each lane: 1 - lane_avg_passenger_speed/speed_limit
+        lane_vehicles = self.eng.get_lane_vehicles()
+        lane_delay = {}
+        lanes = self.all_lanes
+        vehicle_speed = self.eng.get_vehicle_speed()
+
+        for lane in lanes:
+            vehicles = lane_vehicles[lane]
+            lane_vehicle_count = len(vehicles)
+            lane_tot_speed = 0.0
+            lane_tot_passengers = 0
+            for vehicle in vehicles:
+                speed = vehicle_speed[vehicle]
+                flow_id = int(vehicle.split('_')[1])
+                lane_tot_speed += speed*self.flows_list[flow_id]['vehicle']['occupancy']
+                lane_tot_passengers += self.flows_list[flow_id]['vehicle']['occupancy']
+            if lane_vehicle_count == 0:
+                lane_avg_speed = self.all_lanes_speed[lane]
+            else:
+                lane_avg_speed = lane_tot_speed/lane_tot_passengers
             lane_delay[lane] = 1 - lane_avg_speed / self.all_lanes_speed[lane]
         return lane_delay
 

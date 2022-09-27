@@ -99,8 +99,13 @@ class TSCTrainer(BaseTrainer):
                 pass
                 # self.env.eng.set_save_replay(False)
             episodes_rewards = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+            episodes_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+            episodes_passenger_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
             episodes_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+            episodes_passenger_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
             episodes_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+            episodes_passenger_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
             episodes_throughput = 0
             episodes_decision_num = 0
             episode_loss = []
@@ -131,8 +136,15 @@ class TSCTrainer(BaseTrainer):
                         obs, rewards, dones, _ = self.env.step(actions.flatten())
                         i += 1
                         reward_list.append(np.stack(rewards))
+
+                    for ag in self.agents:
+                        episodes_pressures += np.array(list(ag.world.get_pressure().values()),dtype = np.int32)
+                        episodes_passenger_pressures += np.array(list(ag.world.get_passenger_pressure().values()),dtype = np.int32)
                     episodes_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
+                    episodes_passenger_queue += (np.stack(np.array([ag.get_passenger_queue() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
                     episodes_delay += (np.stack(np.array([ag.get_delay() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
+                    episodes_passenger_delay += (np.stack(np.array([ag.get_passenger_delay() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
+
                     rewards = np.mean(reward_list, axis=0)  # [agent, intersection]
                     episodes_rewards += rewards.flatten()
 
@@ -175,14 +187,22 @@ class TSCTrainer(BaseTrainer):
             else:
                 mean_loss = 0
             mean_queue = np.sum(episodes_queue) / (episodes_decision_num * len(self.world.intersections))
+            mean_passenger_queue = np.sum(episodes_passenger_queue) / (episodes_decision_num * len(self.world.intersections))
             mean_delay = np.sum(episodes_delay) / (episodes_decision_num * len(self.world.intersections))
+            mean_passenger_delay = np.sum(episodes_passenger_delay) / (episodes_decision_num * len(self.world.intersections))
+
             episodes_throughput = self.env.world.get_cur_throughput()
+            episodes_passenger_throughput = self.env.world.get_cur_passenger_throughput()
+
             mean_reward = np.sum(episodes_rewards) / episodes_decision_num
+            mean_pressure = np.sum(episodes_pressures) / episodes_decision_num
+            mean_passenger_pressure = np.sum(episodes_passenger_pressures) / episodes_decision_num
+
             cur_travel_time = self.env.world.get_average_travel_time()
             # sumo env has 2 travel time: [real travel time, planned travel time(aligned with Cityflow)]
-            self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_queue, mean_delay, episodes_throughput)
-            self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, queue:{}, delay:{}, throughput:{}".format(i, self.steps,
-                                                        mean_loss, mean_reward, mean_queue, mean_delay, int(episodes_throughput)))
+            self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, episodes_throughput, episodes_passenger_throughput)
+            self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,
+                                                        mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue,mean_passenger_queue, mean_delay, mean_passenger_delay, int(episodes_throughput), int(episodes_passenger_throughput)))
             if e % self.save_rate == 0:
                 [ag.save_model(e=e) for ag in self.agents]
             self.logger.info("episode:{}/{}, real avg travel time:{}, planned avg travel time:{}".format(e, self.episodes, cur_travel_time[0], cur_travel_time[1]))
@@ -198,8 +218,15 @@ class TSCTrainer(BaseTrainer):
         for a in self.agents:
             a.reset()
         ep_rwds = [0 for _ in range(len(self.world.intersections))]
+        episodes_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        episodes_passenger_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
         ep_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        episodes_passenger_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
         ep_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        ep_passenger_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
         ep_throughput = 0
         eps_nums = 0
         for i in range(self.test_steps):
@@ -214,20 +241,33 @@ class TSCTrainer(BaseTrainer):
                     obs, rewards, dones, _ = self.env.step(actions.flatten())  # make sure action is [intersection]
                     i += 1
                     rewards_list.append(np.stack(rewards))
+                for ag in self.agents:
+                    episodes_pressures += np.array(list(ag.world.get_pressure().values()),dtype = np.int32)
+                    episodes_passenger_pressures += np.array(list(ag.world.get_passenger_pressure().values()),dtype = np.int32)                         
                 ep_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
+                episodes_passenger_queue += (np.stack(np.array([ag.get_passenger_queue() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
                 ep_delay += (np.stack(np.array([ag.get_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
+                ep_passenger_delay += (np.stack(np.array([ag.get_passenger_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
                 rewards = np.mean(rewards_list, axis=0)
                 ep_rwds += rewards.flatten()
                 eps_nums += 1
             if all(dones):
                 break
         mean_rwd = np.sum(ep_rwds) / eps_nums
+        mean_pressure = np.sum(episodes_pressures) / eps_nums
+        mean_passenger_pressure = np.sum(episodes_passenger_pressures) / eps_nums
+
         mean_queue = np.sum(ep_queue) / (eps_nums * len(self.world.intersections))
+        mean_passenger_queue = np.sum(episodes_passenger_queue) / (eps_nums * len(self.world.intersections))
+
         mean_delay = np.sum(ep_delay) / (eps_nums * len(self.world.intersections))
+        mean_passenger_delay = np.sum(ep_passenger_delay) / (eps_nums * len(self.world.intersections))
         ep_throughput = self.env.world.get_cur_throughput()
+        ep_passenger_throughput = self.env.world.get_cur_passenger_throughput()
+
         trv_time = self.env.world.get_average_travel_time()
-        self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, queue:{}, delay:{}, throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd,mean_queue, mean_delay, int(ep_throughput)))
-        self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd,mean_queue,mean_delay, ep_throughput)
+        self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
+        self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, ep_throughput, ep_passenger_throughput)
         return trv_time
 
     def test(self, drop_load=True):
@@ -240,6 +280,8 @@ class TSCTrainer(BaseTrainer):
         ep_rwds = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        ep_passenger_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
         ep_throughput = 0
         eps_nums = 0
         # lane_delay = np.array([value for _, value in self.env.world.get_lane_delay().items()]).mean()
@@ -258,6 +300,7 @@ class TSCTrainer(BaseTrainer):
                     rewards_list.append(np.stack(rewards))
                 ep_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten()
                 ep_delay += (np.stack(np.array([ag.get_delay() for ag in self.agents], dtype=np.float32))).flatten()
+                ep_passenger_delay += (np.stack(np.array([ag.get_passenger_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
                 rewards = np.mean(rewards_list, axis=0)
                 ep_rwds += rewards.flatten()
                 eps_nums += 1
@@ -275,8 +318,10 @@ class TSCTrainer(BaseTrainer):
         # self.logger.info("Final lane length is %.4f." % lane_queue_length)
         mean_queue = np.sum(ep_queue) / (eps_nums * len(self.world.intersections))
         mean_delay = np.sum(ep_delay) / (eps_nums * len(self.world.intersections))
+        mean_passenger_delay = np.sum(ep_passenger_delay) / (eps_nums * len(self.world.intersections))
+
         ep_throughput = self.env.world.get_cur_throughput()
-        self.logger.info("Final Travel Time is %.4f, Planned Travel Time is %.4f, mean rewards: %.4f, queue: %.4f, delay: %.4f, throughput: %d" % (trv_time[0], trv_time[1], mean_rwd, mean_queue, mean_delay, ep_throughput))
+        self.logger.info("Final Travel Time is %.4f, Planned Travel Time is %.4f, mean rewards: %.4f, queue: %.4f, delay: %.4f,  passenger_delay: %.4f, throughput: %d" % (trv_time[0], trv_time[1], mean_rwd, mean_queue, mean_delay, mean_passenger_delay , ep_throughput))
         
         # TODO: add attention record
         if Registry.mapping['logger_mapping']['logger_setting'].param['get_attention']:
@@ -285,13 +330,13 @@ class TSCTrainer(BaseTrainer):
         # self.env.eng.set_replay_file(self.replay_file_dir + "replay.txt")
         return trv_time
 
-    def writeLog(self, mode, step, travel_time, planned_tt, loss, cur_rwd, cur_queue, cur_delay, cur_throughput):
+    def writeLog(self, mode, step, travel_time, planned_tt, loss, cur_rwd, cur_pressure, cur_passenger_pressure, cur_queue, cur_passenger_queue, cur_delay, cur_passenger_delay, cur_throughput, cur_passenger_throughput):
         """
         :param mode: "TRAIN" OR "TEST"
         :param step: int
         """
         res = self.args['model']['name'] + '\t' + mode + '\t' + str(
-            step) + '\t' + "%.1f" % travel_time + '\t' + "%.1f" % planned_tt + '\t' + "%.1f" % loss + "\t" + "%.2f" % cur_rwd + "\t" + "%.2f" % cur_queue + "\t" + "%.2f" % cur_delay + "\t" + "%d" % cur_throughput
+            step) + '\t' + "%.1f" % travel_time + '\t' + "%.1f" % planned_tt + '\t' + "%.1f" % loss + "\t" + "%.2f" % cur_rwd + "\t" + "%.2f" % cur_pressure + "\t" + "%.2f" % cur_passenger_pressure + "\t" + "%.2f" % cur_queue +  "\t" + "%.2f" % cur_passenger_queue + "\t" + "%.4f" % cur_delay + "\t" + "%.4f" % cur_passenger_delay + "\t" + "%d" % cur_throughput + "\t" + "%d" % cur_passenger_throughput
         log_handle = open(self.log_file, "a")
         log_handle.write(res + "\n")
         log_handle.close()

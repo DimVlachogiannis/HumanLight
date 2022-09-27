@@ -18,9 +18,9 @@ import json
 import re
 import copy
 
-import sumolib
-import libsumo
-import traci
+#import sumolib
+#import libsumo
+#import traci
 
 # TODO: change it in the future. Accoring to _get_direction
 DIRECTION_RANK = {'N': 0, 'W': 1, 'S': 2, 'E': 3}

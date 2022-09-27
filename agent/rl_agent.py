@@ -1,3 +1,4 @@
+import pdb
 from . import BaseAgent
 from common.registry import Registry
 import gym
@@ -23,8 +24,14 @@ class RLAgent(BaseAgent):
         self.queue = LaneVehicleGenerator(self.world, self.inter_obj,
                                                      ["lane_waiting_count"], in_only=True,
                                                      negative=False)
+        self.passenger_queue = LaneVehicleGenerator(self.world, self.inter_obj,
+                                                     ["lane_passenger_waiting_count"], in_only=True,
+                                                     negative=False)
         self.delay = LaneVehicleGenerator(self.world, self.inter_obj,
                                                      ["lane_delay"], in_only=True, average="all",
+                                                     negative=False)
+        self.passenger_delay = LaneVehicleGenerator(self.world, self.inter_obj,
+                                                     ["passenger_lane_delay"], in_only=True, average="all",
                                                      negative=False)
     def get_ob(self):
         return self.ob_generator.generate()
@@ -54,6 +61,17 @@ class RLAgent(BaseAgent):
         queue = np.sum(np.squeeze(np.array(queue)))
         return queue
 
+    def get_passenger_queue(self):
+        """
+        get queue of intersection
+        return: value
+        """
+        queue = []
+        queue.append(self.passenger_queue.generate())
+        # sum of lane nums
+        queue = np.sum(np.squeeze(np.array(queue)))
+        return queue
+
     def get_delay(self):
         """
         get delay of intersection
@@ -61,6 +79,17 @@ class RLAgent(BaseAgent):
         """
         delay = []
         delay.append(self.delay.generate())
+        delay = np.sum(np.squeeze(np.array(delay)))
+        return delay
+    
+    def get_passenger_delay(self):
+        """
+        get delay of intersection
+        return: value
+        """
+        delay = []
+        delay.append(self.passenger_delay.generate())
+
         delay = np.sum(np.squeeze(np.array(delay)))
         return delay
     

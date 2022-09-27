@@ -12,7 +12,7 @@ model:
   learning_rate: 0.001
   batch_size: 64
   gamma: 0.95
-  epsilon: 0.1
+  epsilon: 0.2
   epsilon_decay: 0.995
   epsilon_min: 0.01
   grad_clip: 5.0
@@ -72,8 +72,8 @@ traffic:
     - sum_lane_num_vehicle_left: 0
     - sum_duration_vehicle_left: 0
     - sum_num_vehicle_been_stopped_thres01: 0
-    - sum_num_vehicle_been_stopped_thres1: -0.25
-    - pressure: 0
+    - sum_num_vehicle_been_stopped_thres1: 0
+    - pressure: -0.25
   line_num: 
     - left: 1
     - right: 1

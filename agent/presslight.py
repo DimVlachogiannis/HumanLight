@@ -31,10 +31,10 @@ class PressLightAgent(RLAgent):
         # get generator for each DQNAgent
         inter_id = self.world.intersection_ids[self.rank]
         inter_obj = self.world.id2intersection[inter_id]
-        self.ob_generator = LaneVehicleGenerator(world, inter_obj, ["lane_count"], average=None)
+        self.ob_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_lane_count"], average=None)
         self.phase_generator = IntersectionPhaseGenerator(world, inter_obj, ["phase"],
                                                           targets=["cur_phase"], negative=False)
-        self.reward_generator = LaneVehicleGenerator(world, inter_obj, ["pressure"], average="all", negative=True)
+        self.reward_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_pressure"], average="all", negative=True)
         self.action_space = gym.spaces.Discrete(len(inter_obj.phases))
         if self.phase:
             if self.one_hot:
@@ -65,15 +65,24 @@ class PressLightAgent(RLAgent):
     def reset(self):
         inter_id = self.world.intersection_ids[self.rank]
         inter_obj = self.world.id2intersection[inter_id]
-        self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["lane_count"], average=None)
+        self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_lane_count"], average=None)
         self.phase_generator = IntersectionPhaseGenerator(self.world, inter_obj, ["phase"],
                                                           targets=["cur_phase"], negative=False)
-        self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["pressure"], average="all", negative=True)
+        self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_pressure"], average="all", negative=True)
         self.queue = LaneVehicleGenerator(self.world, inter_obj,
                                                      ["lane_waiting_count"], in_only=True,
                                                      negative=False)
         self.delay = LaneVehicleGenerator(self.world, inter_obj,
-                                                     ["lane_delay"], in_only=True, average="all",
+                                                     ["lane_delay"], in_only=True, average="vehicle",
+                                                     negative=False)
+        self.passenger_delay = LaneVehicleGenerator(self.world, inter_obj,
+                                                     ["passenger_lane_delay"], in_only=True, average="passenger",
+                                                     negative=False)
+        self.pressure = LaneVehicleGenerator(self.world, inter_obj,
+                                                     ["pressure"], in_only=True, average="vehicle",
+                                                     negative=False)
+        self.passenger_pressure = LaneVehicleGenerator(self.world, inter_obj,
+                                                     ["passenger_pressure"], in_only=True, average="passenger",
                                                      negative=False)
 
     def get_ob(self):

@@ -69,21 +69,21 @@ class LaneVehicleGenerator(BaseGenerator):
 
             
 
-        # ---------------------------------------------------------------------------------------------------------------
-        # # TODO: register it in Registry
-        # if isinstance(world, world_sumo.World):
-        #     for r in roads:
-        #         if not self.world.RIGHT:
-        #             tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]), reverse=True)
-        #         else:
-        #             tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]))
-        #         self.lanes.append(tmp)
-        #         # TODO: rank lanes by lane ranking [0,1,2], assume we only have one digit for ranking
-        # elif isinstance(world, world_cityflow.World):
-        #     for road in roads:
-        #         from_zero = (road["startIntersection"] == I.id) if self.world.RIGHT else (road["endIntersection"] == I.id)
-        #         self.lanes.append([road["id"] + "_" + str(i) for i in range(len(road["lanes"]))[::(1 if from_zero else -1)]])
-        # ---------------------------------------------------------------------------------------------------------------
+        #---------------------------------------------------------------------------------------------------------------
+        # TODO: register it in Registry
+        if isinstance(world, world_sumo.World):
+            for r in roads:
+                if not self.world.RIGHT:
+                    tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]), reverse=True)
+                else:
+                    tmp = sorted(I.road_lane_mapping[r], key=lambda ob: int(ob[-1]))
+                self.lanes.append(tmp)
+                # TODO: rank lanes by lane ranking [0,1,2], assume we only have one digit for ranking
+        elif isinstance(world, world_cityflow.World):
+            for road in roads:
+                from_zero = (road["startIntersection"] == I.id) if self.world.RIGHT else (road["endIntersection"] == I.id)
+                self.lanes.append([road["id"] + "_" + str(i) for i in range(len(road["lanes"]))[::(1 if from_zero else -1)]])
+        #---------------------------------------------------------------------------------------------------------------
         
         # elif isinstance(world, world_openengine.World):
         #     for r in roads:
@@ -126,19 +126,29 @@ class LaneVehicleGenerator(BaseGenerator):
                 ret = np.append(ret, result[self.I.id])
                 continue
             fn_result = np.array([])
+            road_counts = []
 
             for road_lanes in self.lanes:
                 road_result = []
                 for lane_id in road_lanes:
                     road_result.append(result[lane_id])
+                    if self.average == "vehicle":
+                        vehicles = self.world.eng.get_lane_vehicle_count()
+                        road_counts.append(vehicles[lane_id])
+                    if  self.average == "passenger":
+                        passengers = self.world.get_passengers_per_lane()
+                        road_counts.append(passengers[lane_id])                        
                 if self.average == "road" or self.average == "all":
                     road_result = np.mean(road_result)
                 else:
                     road_result = np.array(road_result)
                 fn_result = np.append(fn_result, road_result)
-            
             if self.average == "all":
                 fn_result = np.mean(fn_result)
+            elif self.average == "vehicle":
+                fn_result = np.ma.average(fn_result, weights = road_counts)
+            elif self.average == "passenger":
+                fn_result = np.ma.average(fn_result, weights = road_counts)
             ret = np.append(ret, fn_result)
         if self.negative:
             ret = ret * (-1)
