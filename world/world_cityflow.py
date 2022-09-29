@@ -1,13 +1,15 @@
 from ast import Param
 import json
 import os.path as osp
+from turtle import pd
 import cityflow
 from common.registry import Registry
 
 import numpy as np
 from math import atan2, pi
 import sys
-
+import math
+from datetime import datetime
 
 # TODO: THIS IS Y/X  But we keep it right now
 def _get_direction(road, out=True):
@@ -182,7 +184,8 @@ class World(object):
 
         self.RIGHT = True  # vehicles moves on the right side, currently always set to true due to CityFlow's mechanism
         self.interval = cityflow_config["interval"]
-
+        self.config_num = cityflow_config["flowFile"].split('.json')[0][-1]
+        self.world_creation_time =  datetime.now().strftime('%Y%m%d-%H%M%S')
         # get all non virtual intersections
         # judge whether the file is convert from sumo file,
         # (in sumo_convert file, the "virtual" value of all intersections are set to "False"),
@@ -216,13 +219,16 @@ class World(object):
         self.all_roads = []
         self.all_lanes = []
         self.all_lanes_speed = {}
+        self.lane_length = {}
 
         for road in self.roadnet["roads"]:
             self.all_roads.append(road["id"])
             i = 0
+            road_l = self.get_road_length(road)
             for lane in road["lanes"]:
                 self.all_lanes.append(road["id"] + "_" + str(i))
                 self.all_lanes_speed[road["id"] + "_" + str(i)] = lane['maxSpeed']
+                self.lane_length[road['id'] + '_' + str(i)] = road_l
                 i += 1
 
             iid = road["startIntersection"]
@@ -250,6 +256,8 @@ class World(object):
             "passenger_pressure": self.get_passenger_pressure,
             "lane_waiting_time_count": self.get_lane_waiting_time_count,
             "lane_delay": self.get_lane_delay,
+            "real_delay": self.get_real_delay,
+            "real_passenger_delay": self.get_real_passenger_delay,
             "passenger_lane_delay": self.get_passenger_lane_delay,
             "vehicle_trajectory": self.get_vehicle_trajectory,
             "history_vehicles": self.get_history_vehicles,
@@ -264,6 +272,9 @@ class World(object):
         self.vehicle_waiting_time = {}  # key: vehicle_id, value: the waiting time of this vehicle since last halt.
         self.vehicle_trajectory = {}  # key: vehicle_id, value: [[lane_id_1, enter_time, time_spent_on_lane_1], ... , [lane_id_n, enter_time, time_spent_on_lane_n]]
         self.history_vehicles = set()
+        self.real_delay = {}
+        self.real_passenger_delay = {}
+
 
         # # get in_lines and out_lanes
         # self.list_entering_lanes, self.list_exiting_lanes = self.get_in_out_lanes()
@@ -283,6 +294,9 @@ class World(object):
         self.dic_lane_vehicle_previous_step = {key: None for key in self.all_lanes}
         self.dic_lane_vehicle_current_step = {key: None for key in self.all_lanes}
         self.dic_vehicle_arrive_leave_time = dict()
+        self.real_delay = {}
+        self.real_passenger_delay = {}
+
 
     def _update_arrive_time(self, list_vehicle_arrive):
         ts = self.eng.get_current_time()
@@ -548,7 +562,10 @@ class World(object):
         vehicles = self.eng.get_vehicles(include_waiting=False)
         for vehicle in vehicles:
             if vehicle not in self.vehicle_trajectory:
-                self.vehicle_trajectory[vehicle] = [[vehicle_lane[vehicle], int(self.eng.get_current_time()), 0]]
+                if 'TO' in self.eng.get_vehicle_info(vehicle)['drivable']:
+                    continue
+                else:
+                    self.vehicle_trajectory[vehicle] = [[vehicle_lane[vehicle], int(self.eng.get_current_time()), 0]]
             else:
                 if vehicle not in vehicle_lane.keys():
                     continue
@@ -631,6 +648,7 @@ class World(object):
         self._update_infos()
         # update current measurement
         self.update_current_measurements()
+        self.vehicle_trajectory = self.get_vehicle_trajectory()
 
     def reset(self):
         self.eng.reset()
@@ -654,6 +672,79 @@ class World(object):
 
     def get_lane_queue_length(self):
         return self.eng.get_lane_waiting_vehicle_count()
+
+    def get_road_length(self, road):
+        point_x = road['points'][0]['x'] - road['points'][1]['x']
+        point_y = road['points'][0]['y'] - road['points'][1]['y']
+        return math.sqrt((point_x**2)+(point_y**2))
+
+    def get_real_delay(self):
+        #self.vehicle_trajectory = self.get_vehicle_trajectory()
+        for v in self.vehicle_trajectory:
+            # get road level routes of vehicle
+            routes = self.vehicle_trajectory[v] # lane_level
+            for idx,lane in enumerate(routes):
+                # speed = min(self.all_lanes_speed[lane[0]], float(info['speed']))
+                speed = min(self.all_lanes_speed[lane[0]], self.all_lanes_speed[lane[0]])
+                lane_length = self.lane_length[lane[0]]
+                if idx == len(routes)-1: # the last lane
+                    # judge whether the vehicle run over the whole lane.
+                    dis = self.eng.get_vehicle_distance()
+                    lane_length = dis[v] if v in dis.keys() else lane_length
+                planned_tt = float(lane_length)/speed
+                real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
+                if v not in self.real_delay.keys():
+                    self.real_delay[v] = real_delay
+                else:
+                    self.real_delay[v] += real_delay
+
+        avg_delay = 0.
+        count = 0
+        for dic in self.real_delay.items():
+            avg_delay += dic[1]
+            count += 1
+
+        if count == 0:
+            return 0
+        avg_delay = avg_delay / count
+        print('Vehicles in the system: {}'.format(count))
+
+        system_vehicles_set = set(self.vehicle_trajectory)
+        num_planned_vehicles = len(self.flows_list) #only works with start time == end time
+
+        print('Vehicles not entered: {}'.format(num_planned_vehicles - len(system_vehicles_set)))
+        return avg_delay
+
+    def get_real_passenger_delay(self):
+        #self.vehicle_trajectory = self.get_vehicle_trajectory()
+        count = 0
+        for v in self.vehicle_trajectory:
+            # get road level routes of vehicle
+            routes = self.vehicle_trajectory[v] # lane_level
+            flow_id = int(v.split('_')[1])
+            v_occ = self.flows_list[flow_id]['vehicle']['occupancy']
+            count += v_occ
+
+            for idx,lane in enumerate(routes):
+                # speed = min(self.all_lanes_speed[lane[0]], float(info['speed']))
+                speed = min(self.all_lanes_speed[lane[0]], self.all_lanes_speed[lane[0]])
+                lane_length = self.lane_length[lane[0]]
+                if idx == len(routes)-1: # the last lane
+                    # judge whether the vehicle run over the whole lane.
+                    dis = self.eng.get_vehicle_distance()
+                    lane_length = dis[v] if v in dis.keys() else lane_length
+                planned_tt = float(lane_length)/speed
+                real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
+                if v not in self.real_passenger_delay.keys():
+                    self.real_passenger_delay[v] = real_delay*v_occ
+                else:
+                    self.real_passenger_delay[v] += real_delay*v_occ
+
+        avg_passenger_delay = 0.
+        for dic in self.real_passenger_delay.items():
+            avg_passenger_delay += dic[1]
+        avg_delay = avg_passenger_delay / count
+        return avg_delay
 
 
 if __name__ == "__main__":

@@ -199,10 +199,13 @@ class TSCTrainer(BaseTrainer):
             mean_passenger_pressure = np.sum(episodes_passenger_pressures) / episodes_decision_num
 
             cur_travel_time = self.env.world.get_average_travel_time()
+            real_delay = self.env.world.get_real_delay()
+            real_passenger_delay = self.env.world.get_real_passenger_delay()
+
             # sumo env has 2 travel time: [real travel time, planned travel time(aligned with Cityflow)]
-            self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, episodes_throughput, episodes_passenger_throughput)
-            self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,
-                                                        mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue,mean_passenger_queue, mean_delay, mean_passenger_delay, int(episodes_throughput), int(episodes_passenger_throughput)))
+            self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay,real_passenger_delay, episodes_throughput, episodes_passenger_throughput)
+            self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, real_delay: {}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,
+                                                        mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue,mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(episodes_throughput), int(episodes_passenger_throughput)))
             if e % self.save_rate == 0:
                 [ag.save_model(e=e) for ag in self.agents]
             self.logger.info("episode:{}/{}, real avg travel time:{}, planned avg travel time:{}".format(e, self.episodes, cur_travel_time[0], cur_travel_time[1]))
@@ -266,8 +269,11 @@ class TSCTrainer(BaseTrainer):
         ep_passenger_throughput = self.env.world.get_cur_passenger_throughput()
 
         trv_time = self.env.world.get_average_travel_time()
-        self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
-        self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, ep_throughput, ep_passenger_throughput)
+        real_delay = self.env.world.get_real_delay()
+        real_passenger_delay = self.env.world.get_real_passenger_delay()
+
+        self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, real_delay:{}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
+        self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
         return trv_time
 
     def test(self, drop_load=True):
@@ -330,14 +336,17 @@ class TSCTrainer(BaseTrainer):
         # self.env.eng.set_replay_file(self.replay_file_dir + "replay.txt")
         return trv_time
 
-    def writeLog(self, mode, step, travel_time, planned_tt, loss, cur_rwd, cur_pressure, cur_passenger_pressure, cur_queue, cur_passenger_queue, cur_delay, cur_passenger_delay, cur_throughput, cur_passenger_throughput):
+    def writeLog(self, mode, step, travel_time, planned_tt, loss, cur_rwd, cur_pressure, cur_passenger_pressure, cur_queue, cur_passenger_queue, cur_delay, cur_passenger_delay, cur_real_delay, cur_real_passenger_delay, cur_throughput, cur_passenger_throughput):
         """
         :param mode: "TRAIN" OR "TEST"
         :param step: int
         """
+
         res = self.args['model']['name'] + '\t' + mode + '\t' + str(
-            step) + '\t' + "%.1f" % travel_time + '\t' + "%.1f" % planned_tt + '\t' + "%.1f" % loss + "\t" + "%.2f" % cur_rwd + "\t" + "%.2f" % cur_pressure + "\t" + "%.2f" % cur_passenger_pressure + "\t" + "%.2f" % cur_queue +  "\t" + "%.2f" % cur_passenger_queue + "\t" + "%.4f" % cur_delay + "\t" + "%.4f" % cur_passenger_delay + "\t" + "%d" % cur_throughput + "\t" + "%d" % cur_passenger_throughput
-        log_handle = open(self.log_file, "a")
+            step) + '\t' + "%.1f" % travel_time + '\t' + "%.1f" % planned_tt + '\t' + "%.1f" % loss + "\t" + "%.2f" % cur_rwd + "\t" + "%.2f" % cur_pressure + "\t" + "%.2f" % cur_passenger_pressure + "\t" + "%.2f" % cur_queue +  "\t" + "%.2f" % cur_passenger_queue + "\t" + "%.4f" % cur_delay + "\t" + "%.4f" % cur_passenger_delay + "\t" + "%.4f" % cur_real_delay + "\t" + "%.4f" % cur_real_passenger_delay + "\t" + "%d" % cur_throughput + "\t" + "%d" % cur_passenger_throughput
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
+        log_handle = open(temp_log_file, "a")
         log_handle.write(res + "\n")
         log_handle.close()
 

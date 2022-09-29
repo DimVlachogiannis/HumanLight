@@ -21,7 +21,7 @@ parser.add_argument('-a', '--agent', type=str, default="presslight", help="agent
 parser.add_argument('-w', '--world', type=str, default="cityflow", help="simulator type")
 #parser.add_argument('-w', '--world', type=str, default="sumo", help="simulator type")
 parser.add_argument('-d', '--dataset', type=str, default='onfly', help='type of dataset in training process')
-parser.add_argument('--path', type=str, default='configs/cityflow1x1_config5.cfg', help='path to cityflow path')
+parser.add_argument('--path', type=str, default='configs/cityflow1x1_config6.cfg', help='path to cityflow path')
 #parser.add_argument('--path', type=str, default='configs/sumo1x3.cfg', help='path to cityflow path')
 parser.add_argument('--prefix', type=str, default='0', help="the number of predix in this running process")
 parser.add_argument('--seed', type=int, default=None, help="seed for pytorch backend")
