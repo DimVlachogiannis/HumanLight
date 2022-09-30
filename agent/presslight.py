@@ -31,11 +31,21 @@ class PressLightAgent(RLAgent):
         # get generator for each DQNAgent
         inter_id = self.world.intersection_ids[self.rank]
         inter_obj = self.world.id2intersection[inter_id]
-        self.ob_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_lane_count"], average=None)
+        self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
+        if self.model_type == 'original':
+            self.ob_generator = LaneVehicleGenerator(world, inter_obj, ["lane_count"], average=None)
+            self.reward_generator = LaneVehicleGenerator(world, inter_obj, ["pressure"], average="all", negative=True)
+
+        elif self.model_type == 'passenger':
+            self.ob_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_lane_count"], average=None)
+            self.add_ob_generator = LaneVehicleGenerator(world, inter_obj, ["lane_count"], average=None)
+            self.reward_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_pressure"], average="all", negative=True)
+        else:
+            print('Invalid model_type input in presslight.yml')
         self.phase_generator = IntersectionPhaseGenerator(world, inter_obj, ["phase"],
                                                           targets=["cur_phase"], negative=False)
-        self.reward_generator = LaneVehicleGenerator(world, inter_obj, ["passenger_pressure"], average="all", negative=True)
         self.action_space = gym.spaces.Discrete(len(inter_obj.phases))
+        
         if self.phase:
             if self.one_hot:
                 self.ob_length = self.ob_generator.ob_length + len(inter_obj.phases) # 32
@@ -43,6 +53,9 @@ class PressLightAgent(RLAgent):
                 self.ob_length = self.ob_generator.ob_length + 1 # 25
         else:
             self.ob_length = self.ob_generator.ob_length # 24
+
+        if hasattr(self, 'add_ob_generator'):
+            self.ob_length += self.ob_generator.ob_length # 24
 
         self.gamma = Registry.mapping['model_mapping']['model_setting'].param['gamma']
         self.grad_clip = Registry.mapping['model_mapping']['model_setting'].param['grad_clip']
@@ -65,29 +78,30 @@ class PressLightAgent(RLAgent):
     def reset(self):
         inter_id = self.world.intersection_ids[self.rank]
         inter_obj = self.world.id2intersection[inter_id]
-        self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_lane_count"], average=None)
+        if self.model_type == 'original':
+            self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["pressure"], average="all", negative=True)
+            self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["lane_count"], average=None)
+        elif self.model_type == 'passenger':
+            self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_pressure"], average="all", negative=True)
+            self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_lane_count"], average=None)
+            self.add_ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["lane_count"], average=None)
+
+        else:
+            print('Invalid model_type input in presslight.yml')
         self.phase_generator = IntersectionPhaseGenerator(self.world, inter_obj, ["phase"],
                                                           targets=["cur_phase"], negative=False)
-        self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_pressure"], average="all", negative=True)
         self.queue = LaneVehicleGenerator(self.world, inter_obj,
                                                      ["lane_waiting_count"], in_only=True,
                                                      negative=False)
         self.delay = LaneVehicleGenerator(self.world, inter_obj,
-                                                     ["lane_delay"], in_only=True, average="vehicle",
-                                                     negative=False)
-        self.passenger_delay = LaneVehicleGenerator(self.world, inter_obj,
-                                                     ["passenger_lane_delay"], in_only=True, average="passenger",
-                                                     negative=False)
-        self.pressure = LaneVehicleGenerator(self.world, inter_obj,
-                                                     ["pressure"], in_only=True, average="vehicle",
-                                                     negative=False)
-        self.passenger_pressure = LaneVehicleGenerator(self.world, inter_obj,
-                                                     ["passenger_pressure"], in_only=True, average="passenger",
+                                                     ["lane_delay"], in_only=True, average="all",
                                                      negative=False)
 
     def get_ob(self):
         x_obs = []
         x_obs.append(self.ob_generator.generate())
+        if hasattr(self, 'add_ob_generator'):
+            x_obs[0] = np.concatenate((x_obs[0],self.add_ob_generator.generate()), axis = 0)
         x_obs = np.array(x_obs, dtype=np.float32)
         return x_obs #(1,24)
     

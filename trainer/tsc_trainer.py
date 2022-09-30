@@ -345,7 +345,7 @@ class TSCTrainer(BaseTrainer):
         res = self.args['model']['name'] + '\t' + mode + '\t' + str(
             step) + '\t' + "%.1f" % travel_time + '\t' + "%.1f" % planned_tt + '\t' + "%.1f" % loss + "\t" + "%.2f" % cur_rwd + "\t" + "%.2f" % cur_pressure + "\t" + "%.2f" % cur_passenger_pressure + "\t" + "%.2f" % cur_queue +  "\t" + "%.2f" % cur_passenger_queue + "\t" + "%.4f" % cur_delay + "\t" + "%.4f" % cur_passenger_delay + "\t" + "%.4f" % cur_real_delay + "\t" + "%.4f" % cur_real_passenger_delay + "\t" + "%d" % cur_throughput + "\t" + "%d" % cur_passenger_throughput
         temp_log_file = self.log_file.split('.log')[0]
-        temp_log_file = temp_log_file + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
         log_handle = open(temp_log_file, "a")
         log_handle.write(res + "\n")
         log_handle.close()

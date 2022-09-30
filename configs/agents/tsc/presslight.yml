@@ -4,6 +4,7 @@ includes:
 
 model:
   name: presslight
+  model_type: passenger
   d_dense: 20
   n_layer: 2
   patience: 10
