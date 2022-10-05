@@ -4,7 +4,7 @@ from common.metric import TravelTimeMetric
 from environment import TSCEnv
 from common.registry import Registry
 from trainer.base_trainer import BaseTrainer
-
+import json
 
 @Registry.register_trainer("tsc")
 class TSCTrainer(BaseTrainer):
@@ -272,6 +272,9 @@ class TSCTrainer(BaseTrainer):
         real_delay = self.env.world.get_real_delay()
         real_passenger_delay = self.env.world.get_real_passenger_delay()
 
+        # Export specific vehicle statistics for last 10 episodes
+        self.store_vehicle_info(e)
+
         self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, real_delay:{}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
         self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
         return trv_time
@@ -285,8 +288,11 @@ class TSCTrainer(BaseTrainer):
             a.reset()
         ep_rwds = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        episodes_passenger_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_passenger_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        episodes_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+        episodes_passenger_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
 
         ep_throughput = 0
         eps_nums = 0
@@ -305,8 +311,14 @@ class TSCTrainer(BaseTrainer):
                     i += 1
                     rewards_list.append(np.stack(rewards))
                 ep_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten()
+                episodes_passenger_queue += (np.stack(np.array([ag.get_passenger_queue() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
+
                 ep_delay += (np.stack(np.array([ag.get_delay() for ag in self.agents], dtype=np.float32))).flatten()
                 ep_passenger_delay += (np.stack(np.array([ag.get_passenger_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
+
+                episodes_pressures += np.array(list(ag.world.get_pressure().values()),dtype = np.int32)
+                episodes_passenger_pressures += np.array(list(ag.world.get_passenger_pressure().values()),dtype = np.int32)  
+
                 rewards = np.mean(rewards_list, axis=0)
                 ep_rwds += rewards.flatten()
                 eps_nums += 1
@@ -323,10 +335,22 @@ class TSCTrainer(BaseTrainer):
         # self.logger.info("Final average lane delay is %.4f." % lane_delay)
         # self.logger.info("Final lane length is %.4f." % lane_queue_length)
         mean_queue = np.sum(ep_queue) / (eps_nums * len(self.world.intersections))
+        mean_passenger_queue = np.sum(episodes_passenger_queue) / (eps_nums * len(self.world.intersections))
+
         mean_delay = np.sum(ep_delay) / (eps_nums * len(self.world.intersections))
         mean_passenger_delay = np.sum(ep_passenger_delay) / (eps_nums * len(self.world.intersections))
 
+        mean_pressure = np.sum(episodes_pressures) / eps_nums
+        mean_passenger_pressure = np.sum(episodes_passenger_pressures) / eps_nums
+        
+        real_delay = self.env.world.get_real_delay()
+        real_passenger_delay = self.env.world.get_real_passenger_delay()
+
         ep_throughput = self.env.world.get_cur_throughput()
+        ep_passenger_throughput = self.env.world.get_cur_passenger_throughput()
+
+        self.writeLog("TEST", 0, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
+
         self.logger.info("Final Travel Time is %.4f, Planned Travel Time is %.4f, mean rewards: %.4f, queue: %.4f, delay: %.4f,  passenger_delay: %.4f, throughput: %d" % (trv_time[0], trv_time[1], mean_rwd, mean_queue, mean_delay, mean_passenger_delay , ep_throughput))
         
         # TODO: add attention record
@@ -349,4 +373,20 @@ class TSCTrainer(BaseTrainer):
         log_handle = open(temp_log_file, "a")
         log_handle.write(res + "\n")
         log_handle.close()
+
+    def store_vehicle_info(self, e):
+        total_episodes = self.args['trainer']['episodes']
+        if e in range(total_episodes - 5, total_episodes):
+            vehicle_info = self.world.vehicle_trajectory
+            for v in vehicle_info.keys():
+                try:
+                    add_info = self.world.eng.get_vehicle_info(v)
+                    vehicle_info[v]['info'] = add_info
+                except:
+                    pass
+            
+            info_log_file = self.log_file.split('root_details.log')[0]+ 'vehicle_info_' + self.world.world_creation_time +  '_{}.json'.format(e)  
+            
+            with open(info_log_file, "w") as outfile:  
+                json.dump(vehicle_info, outfile)
 

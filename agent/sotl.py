@@ -1,4 +1,4 @@
-from . import BaseAgent
+from . import BaseAgent, RLAgent
 from common.registry import Registry
 from generator import LaneVehicleGenerator, IntersectionPhaseGenerator, IntersectionVehicleGenerator
 import numpy as np
@@ -6,12 +6,12 @@ import gym
 
 
 @Registry.register_model('sotl')
-class SOTLAgent(BaseAgent):
+class SOTLAgent(RLAgent):
     """
     Agent using Self-organizing Traffic Light(SOTL) Control method to control traffic light
     """
     def __init__(self, world, rank):
-        super().__init__(world)
+        super().__init__(world,world.intersection_ids[rank])
         self.world = world
         self.rank = rank
         # some threshold to deal with phase requests
@@ -29,12 +29,12 @@ class SOTLAgent(BaseAgent):
                                                           targets=["cur_phase"], negative=False)
         self.reward_generator = LaneVehicleGenerator(self.world, self.inter, ["lane_waiting_count"],
                                                      in_only=True, average='all', negative=True)
-        # self.queue = LaneVehicleGenerator(self.world, self.inter,
-        #                                              ["lane_waiting_count"], in_only=True,
-        #                                              negative=False)
-        # self.delay = LaneVehicleGenerator(self.world, self.inter,
-        #                                              ["lane_delay"], in_only=True,
-        #                                              negative=False)
+        self.queue = LaneVehicleGenerator(self.world, self.inter,
+                                                    ["lane_waiting_count"], in_only=True,
+                                                    negative=False)
+        self.delay = LaneVehicleGenerator(self.world, self.inter,
+                                                    ["lane_delay"], in_only=True,
+                                                    negative=False)
         self.action_space = gym.spaces.Discrete(len(self.inter.phases))
 
     def reset(self):
@@ -76,6 +76,7 @@ class SOTLAgent(BaseAgent):
         lane_waiting_count = self.world.get_info("lane_waiting_count")
         assert phase[-1] == self.inter.current_phase
         action = self.inter.current_phase
+        #print(action)
         # TODO: we assume current_phase_time always greater than yellow_Phase_time
         if self.inter.current_phase_time >= self.t_min:
             num_green_vehicles = sum([lane_waiting_count[lane] for
