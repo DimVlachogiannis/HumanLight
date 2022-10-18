@@ -17,7 +17,7 @@ parser.add_argument('--ngpu', type=str, default="-1", help='gpu to be used')  # 
 parser.add_argument('--interface', type=str, default="libsumo", help="interface type") # libsumo(fast) or traci(slow)
 
 parser.add_argument('-t', '--task', type=str, default="tsc", help="task type to run")
-parser.add_argument('-a', '--agent', type=str, default="sotl", help="agent type of agents in RL environment")
+parser.add_argument('-a', '--agent', type=str, default="maxpressure", help="agent type of agents in RL environment")
 parser.add_argument('-w', '--world', type=str, default="cityflow", help="simulator type")
 #parser.add_argument('-w', '--world', type=str, default="sumo", help="simulator type")
 parser.add_argument('-d', '--dataset', type=str, default='onfly', help='type of dataset in training process')

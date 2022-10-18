@@ -190,8 +190,8 @@ class PressLightAgent(RLAgent):
         self.target_model.load_state_dict(weights)
 
     def load_model(self, e):
-        model_name = os.path.join(
-            Registry.mapping['logger_mapping']['output_path'].path, 'model', f'{e}_{self.rank}.pt')
+        model_date = Registry.mapping['logger_mapping']['logger_setting'].param['load_model_date']
+        model_name = os.path.join(Registry.mapping['logger_mapping']['output_path'].path, 'model',f'{self.model_type}_{model_date}', f'{e}_{self.rank}.pt')
         self.model = self._build_model()
         self.model.load_state_dict(torch.load(model_name))
         self.target_model = self._build_model()
@@ -199,7 +199,7 @@ class PressLightAgent(RLAgent):
     
     def save_model(self, e):
         path = os.path.join(
-            Registry.mapping['logger_mapping']['output_path'].path, 'model')
+            Registry.mapping['logger_mapping']['output_path'].path, 'model',f'{self.model_type}_{self.world.world_creation_time}')
         if not os.path.exists(path):
             os.makedirs(path)
         model_name = os.path.join(path, f'{e}_{self.rank}.pt')

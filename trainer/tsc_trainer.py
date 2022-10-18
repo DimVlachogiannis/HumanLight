@@ -201,6 +201,10 @@ class TSCTrainer(BaseTrainer):
             cur_travel_time = self.env.world.get_average_travel_time()
             real_delay = self.env.world.get_real_delay()
             real_passenger_delay = self.env.world.get_real_passenger_delay()
+        
+
+            import pdb
+            pdb.set_trace()
 
             # sumo env has 2 travel time: [real travel time, planned travel time(aligned with Cityflow)]
             self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay,real_passenger_delay, episodes_throughput, episodes_passenger_throughput)
@@ -232,6 +236,7 @@ class TSCTrainer(BaseTrainer):
 
         ep_throughput = 0
         eps_nums = 0
+        all_actions = []
         for i in range(self.test_steps):
             if i % self.action_interval == 0:
                 phases = np.stack([ag.get_phase() for ag in self.agents])
@@ -239,6 +244,8 @@ class TSCTrainer(BaseTrainer):
                 for idx, ag in enumerate(self.agents):
                     actions.append(ag.get_action(obs[idx], phases[idx], test=True))
                 actions = np.stack(actions)
+                # Works for 1 intersection case, TODO: fix for corridor
+                all_actions.append(actions[0][0])
                 rewards_list = []
                 for _ in range(self.action_interval):
                     obs, rewards, dones, _ = self.env.step(actions.flatten())  # make sure action is [intersection]
@@ -256,6 +263,8 @@ class TSCTrainer(BaseTrainer):
                 eps_nums += 1
             if all(dones):
                 break
+
+
         mean_rwd = np.sum(ep_rwds) / eps_nums
         mean_pressure = np.sum(episodes_pressures) / eps_nums
         mean_passenger_pressure = np.sum(episodes_passenger_pressures) / eps_nums
@@ -277,6 +286,8 @@ class TSCTrainer(BaseTrainer):
 
         self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, real_delay:{}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
         self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
+        self.store_actions_taken(e, all_actions)
+
         return trv_time
 
     def test(self, drop_load=True):
@@ -389,4 +400,28 @@ class TSCTrainer(BaseTrainer):
             
             with open(info_log_file, "w") as outfile:  
                 json.dump(vehicle_info, outfile)
+
+
+    def store_actions_taken(self, step, all_actions):
+        """
+        :param step: int
+        """
+
+        # Works for 1 intersection case, TODO: fix for corridor
+        phases, counts = np.unique(all_actions, return_counts = True)
+        dict_counts = dict(zip(phases, counts))
+        for _phase in self.world.intersections[0].phases:
+            if _phase not in phases:
+                dict_counts[_phase] = 0
+
+        res = self.args['model']['name'] + '\t' + str(
+            step) 
+        for val in dict_counts.values():
+            res += '\t' +  "%d" % int(val)
+
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_actions_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
+        log_handle = open(temp_log_file, "a")
+        log_handle.write(res + "\n")
+        log_handle.close()
 

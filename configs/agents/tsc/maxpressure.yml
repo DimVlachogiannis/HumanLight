@@ -4,6 +4,7 @@ includes:
 
 model:
   name: maxpressure
+  model_type: original
   t_min: 10
 
 

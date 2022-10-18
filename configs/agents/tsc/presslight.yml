@@ -29,7 +29,7 @@ trainer:
   steps: 3600
   test_steps: 3600
   action_interval: 10
-  episodes: 1000
+  episodes: 600
   update_model_rate: 1
   update_target_rate: 10
   meta_test_update_model_rate: 10
@@ -44,11 +44,12 @@ logger:
   get_attention: False
   ave_model: True
   save_model: True
-  save_rate: 20
+  save_rate: 100
   train_model: True
   test_model: True
   load_model: False
-
+  load_model_date: 20221009-121723
+  load_e: 20
 
 traffic:
   one_hot: True

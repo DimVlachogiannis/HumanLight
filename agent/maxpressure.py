@@ -1,4 +1,4 @@
-from . import BaseAgent
+from . import BaseAgent, RLAgent
 from common.registry import Registry
 from generator import LaneVehicleGenerator, IntersectionPhaseGenerator, IntersectionVehicleGenerator
 import numpy as np
@@ -6,15 +6,16 @@ import gym
 
 
 @Registry.register_model('maxpressure')
-class MaxPressureAgent(BaseAgent):
+class MaxPressureAgent(RLAgent):
     """
     Agent using Max-Pressure method to control traffic light
     """
     def __init__(self, world, rank):
-        super().__init__(world)
+        super().__init__(world,world.intersection_ids[rank])
         self.world = world
         self.rank = rank
         self.model = None
+        self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
 
         # get generator for each MaxPressure
         inter_id = self.world.intersection_ids[self.rank]

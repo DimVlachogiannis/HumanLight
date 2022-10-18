@@ -184,7 +184,7 @@ class World(object):
 
         self.RIGHT = True  # vehicles moves on the right side, currently always set to true due to CityFlow's mechanism
         self.interval = cityflow_config["interval"]
-        self.config_num = cityflow_config["flowFile"].split('.json')[0][-1]
+        self.config_num = cityflow_config["flowFile"].split('.json')[0][-2:]
         self.world_creation_time =  datetime.now().strftime('%Y%m%d-%H%M%S')
         # get all non virtual intersections
         # judge whether the file is convert from sumo file,
@@ -485,6 +485,18 @@ class World(object):
                 for vehicle in lane_vehicles[lane]:
                     flow_id = int(vehicle.split('_')[1])
                     passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+        return passengers_per_lane
+
+    def get_passengers_per_lane_square(self):
+        # get the current lane of each vehicle. {vehicle_id: lane_id}
+        passengers_per_lane = {}
+        lane_vehicles = self.eng.get_lane_vehicles()
+        for lane in self.all_lanes:
+            passengers_per_lane[lane] = 0
+            if len(lane_vehicles[lane]) > 0:
+                for vehicle in lane_vehicles[lane]:
+                    flow_id = int(vehicle.split('_')[1])
+                    passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']**2
         return passengers_per_lane
 
     def get_vehicle_waiting_time(self):

@@ -1010,56 +1010,56 @@
             "availableRoadLinks": []
           },
           {
-            "time": 30,
+            "time": 55,
             "availableRoadLinks": [
               0,
               4
             ]
           },
           {
-            "time": 30,
+            "time": 18,
             "availableRoadLinks": [
               2,
               7
             ]
           },
           {
-            "time": 30,
+            "time": 9,
             "availableRoadLinks": [
               1,
               5
             ]
           },
           {
-            "time": 30,
+            "time": 9,
             "availableRoadLinks": [
               3,
               6
             ]
           },
           {
-            "time": 30,
+            "time": 55,
             "availableRoadLinks": [
               0,
               1
             ]
           },
           {
-            "time": 30,
+            "time": 55,
             "availableRoadLinks": [
               4,
               5
             ]
           },
           {
-            "time": 30,
+            "time": 18,
             "availableRoadLinks": [
               2,
               3
             ]
           },
           {
-            "time": 30,
+            "time": 18,
             "availableRoadLinks": [
               6,
               7
