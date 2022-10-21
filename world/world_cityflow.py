@@ -487,7 +487,7 @@ class World(object):
                     passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
         return passengers_per_lane
 
-    def get_passengers_per_lane_square(self):
+    def get_passengers_per_lane_multiplier(self):
         # get the current lane of each vehicle. {vehicle_id: lane_id}
         passengers_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
@@ -496,7 +496,9 @@ class World(object):
             if len(lane_vehicles[lane]) > 0:
                 for vehicle in lane_vehicles[lane]:
                     flow_id = int(vehicle.split('_')[1])
-                    passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']**2
+                    temp_occ = self.flows_list[flow_id]['vehicle']['occupancy']
+                    multiplier = 1 + 3*(temp_occ-1)/59
+                    passengers_per_lane[lane] += temp_occ*multiplier
         return passengers_per_lane
 
     def get_vehicle_waiting_time(self):
@@ -693,6 +695,8 @@ class World(object):
     def get_real_delay(self):
         #self.vehicle_trajectory = self.get_vehicle_trajectory()
         for v in self.vehicle_trajectory:
+            flow_id = int(v.split('_')[1])
+
             # get road level routes of vehicle
             routes = self.vehicle_trajectory[v] # lane_level
             for idx,lane in enumerate(routes):
@@ -705,6 +709,9 @@ class World(object):
                     lane_length = dis[v] if v in dis.keys() else lane_length
                 planned_tt = float(lane_length)/speed
                 real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
+                # Add additional delay due to start time
+                if lane[0][-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
+                    real_delay += (lane[1]) - self.flows_list[flow_id]['startTime']
                 if v not in self.real_delay.keys():
                     self.real_delay[v] = real_delay
                 else:
@@ -747,6 +754,10 @@ class World(object):
                     lane_length = dis[v] if v in dis.keys() else lane_length
                 planned_tt = float(lane_length)/speed
                 real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
+                # Add additional delay due to start time
+                if lane[0][-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
+                    real_delay += (lane[1]) - self.flows_list[flow_id]['startTime']
+
                 if v not in self.real_passenger_delay.keys():
                     self.real_passenger_delay[v] = real_delay*v_occ
                 else:
@@ -756,6 +767,9 @@ class World(object):
         for dic in self.real_passenger_delay.items():
             avg_passenger_delay += dic[1]
         avg_delay = avg_passenger_delay / count
+
+        import pdb
+        pdb.set_trace()
         return avg_delay
 
 

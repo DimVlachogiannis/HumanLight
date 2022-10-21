@@ -192,6 +192,7 @@ class PressLightAgent(RLAgent):
     def load_model(self, e):
         model_date = Registry.mapping['logger_mapping']['logger_setting'].param['load_model_date']
         model_name = os.path.join(Registry.mapping['logger_mapping']['output_path'].path, 'model',f'{self.model_type}_{model_date}', f'{e}_{self.rank}.pt')
+        model_name = './data/output_data/tsc/presslight/0/model/passenger_20221011-223029/600_0.pt'
         self.model = self._build_model()
         self.model.load_state_dict(torch.load(model_name))
         self.target_model = self._build_model()

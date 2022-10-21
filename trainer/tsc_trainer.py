@@ -202,10 +202,6 @@ class TSCTrainer(BaseTrainer):
             real_delay = self.env.world.get_real_delay()
             real_passenger_delay = self.env.world.get_real_passenger_delay()
         
-
-            import pdb
-            pdb.set_trace()
-
             # sumo env has 2 travel time: [real travel time, planned travel time(aligned with Cityflow)]
             self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay,real_passenger_delay, episodes_throughput, episodes_passenger_throughput)
             self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, real_delay: {}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,
@@ -217,6 +213,7 @@ class TSCTrainer(BaseTrainer):
                 self.logger.debug("intersection:{}, mean_episode_reward:{}, mean_queue:{}".format(j, episodes_rewards[j] / episodes_decision_num, episodes_queue[j]/episodes_decision_num, episodes_delay[j]/episodes_decision_num))
             if self.test_when_train:
                 self.train_test(e)
+                #self.test(False)
         # self.dataset.flush([ag.replay_buffer for ag in self.agents])
         [ag.save_model(e=self.episodes) for ag in self.agents]
 
@@ -360,6 +357,8 @@ class TSCTrainer(BaseTrainer):
         ep_throughput = self.env.world.get_cur_throughput()
         ep_passenger_throughput = self.env.world.get_cur_passenger_throughput()
 
+        self.store_vehicle_info(599)
+
         self.writeLog("TEST", 0, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
 
         self.logger.info("Final Travel Time is %.4f, Planned Travel Time is %.4f, mean rewards: %.4f, queue: %.4f, delay: %.4f,  passenger_delay: %.4f, throughput: %d" % (trv_time[0], trv_time[1], mean_rwd, mean_queue, mean_delay, mean_passenger_delay , ep_throughput))
@@ -387,7 +386,7 @@ class TSCTrainer(BaseTrainer):
 
     def store_vehicle_info(self, e):
         total_episodes = self.args['trainer']['episodes']
-        if e in range(total_episodes - 5, total_episodes):
+        if e in range(total_episodes - 500, total_episodes):
             vehicle_info = self.world.vehicle_trajectory
             for v in vehicle_info.keys():
                 try:
