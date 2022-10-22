@@ -4,7 +4,8 @@ includes:
 
 model:
   name: presslight
-  model_type: original
+  model_type: passenger
+  eff_pass_press: True
   d_dense: 32
   n_layer: 3
   patience: 10
@@ -29,7 +30,7 @@ trainer:
   steps: 3600
   test_steps: 3600
   action_interval: 10
-  episodes: 1000
+  episodes: 800
   update_model_rate: 1
   update_target_rate: 10
   meta_test_update_model_rate: 10

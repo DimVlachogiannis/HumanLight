@@ -201,7 +201,7 @@ class TSCTrainer(BaseTrainer):
             cur_travel_time = self.env.world.get_average_travel_time()
             real_delay = self.env.world.get_real_delay()
             real_passenger_delay = self.env.world.get_real_passenger_delay()
-        
+            
             # sumo env has 2 travel time: [real travel time, planned travel time(aligned with Cityflow)]
             self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay,real_passenger_delay, episodes_throughput, episodes_passenger_throughput)
             self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, real_delay: {}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,

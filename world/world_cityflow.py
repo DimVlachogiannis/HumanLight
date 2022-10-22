@@ -246,7 +246,9 @@ class World(object):
         self.info_functions = {
             "vehicles": (lambda: self.eng.get_vehicles(include_waiting=True)),
             "lane_count": self.eng.get_lane_vehicle_count,
+            "eff_lane_count": self.get_efficient_lane_count,
             "passenger_lane_count": self.get_passengers_per_lane,
+            "eff_passenger_lane_count": self.get_efficient_passengers_per_lane,
             "lane_waiting_count": self.eng.get_lane_waiting_vehicle_count,
             "lane_passenger_waiting_count": self.get_passengers_waiting_per_lane,
             "lane_vehicles": self.eng.get_lane_vehicles,
@@ -419,7 +421,13 @@ class World(object):
         return pressures
 
     def get_passenger_pressure(self):
-        passngers = self.get_passengers_per_lane()
+        eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+
+        if not eff_pass_press:
+            passengers = self.get_passengers_per_lane()
+        elif eff_pass_press:
+            passengers = self.get_efficient_passengers_per_lane()
+
         pressures = {}
         for i in self.intersections:
             pressure = 0
@@ -435,11 +443,11 @@ class World(object):
                         road["startIntersection"] == i.id)
                 for n in range(len(road["lanes"]))[::(1 if from_zero else -1)]:
                     out_lanes.append(road["id"] + "_" + str(n))
-            for lane in passngers.keys():
+            for lane in passengers.keys():
                 if lane in in_lanes:
-                    pressure += passngers[lane]
+                    pressure += passengers[lane]
                 if lane in out_lanes:
-                    pressure -= passngers[lane]
+                    pressure -= passengers[lane]
             pressures[i.id] = pressure
         return pressures
 
@@ -485,6 +493,48 @@ class World(object):
                 for vehicle in lane_vehicles[lane]:
                     flow_id = int(vehicle.split('_')[1])
                     passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+        return passengers_per_lane
+
+    def get_efficient_lane_count(self):
+        # get the current lane of each vehicle. {vehicle_id: lane_id}
+        action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
+        vehicles_per_lane = {}
+        lane_vehicles = self.eng.get_lane_vehicles()
+        dis = self.eng.get_vehicle_distance()
+        spds = self.eng.get_vehicle_speed()
+
+        for lane in self.all_lanes:
+            vehicles_per_lane[lane] = 0
+            if len(lane_vehicles[lane]) > 0:
+                for vehicle in lane_vehicles[lane]:
+                    flow_id = int(vehicle.split('_')[1])
+                    # Identify if the vehicle can have reached the intersection by the end of the decision interval
+                    lane_length = self.lane_length[lane]
+                    dis_covered = dis[vehicle]
+                    max_dis = dis_covered + spds[vehicle]*action_interval + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*action_interval**2
+                    if max_dis >= lane_length:
+                        vehicles_per_lane[lane] += 1
+        return vehicles_per_lane
+
+    def get_efficient_passengers_per_lane(self):
+        # get the current lane of each vehicle. {vehicle_id: lane_id}
+        action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
+        passengers_per_lane = {}
+        lane_vehicles = self.eng.get_lane_vehicles()
+        dis = self.eng.get_vehicle_distance()
+        spds = self.eng.get_vehicle_speed()
+
+        for lane in self.all_lanes:
+            passengers_per_lane[lane] = 0
+            if len(lane_vehicles[lane]) > 0:
+                for vehicle in lane_vehicles[lane]:
+                    flow_id = int(vehicle.split('_')[1])
+                    # Identify if the vehicle can have reached the intersection by the end of the decision interval
+                    lane_length = self.lane_length[lane]
+                    dis_covered = dis[vehicle]
+                    max_dis = dis_covered + spds[vehicle]*action_interval + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*action_interval**2
+                    if max_dis >= lane_length:
+                        passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
         return passengers_per_lane
 
     def get_passengers_per_lane_multiplier(self):
@@ -710,7 +760,7 @@ class World(object):
                 planned_tt = float(lane_length)/speed
                 real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
                 # Add additional delay due to start time
-                if lane[0][-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
+                if lane[0][:-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
                     real_delay += (lane[1]) - self.flows_list[flow_id]['startTime']
                 if v not in self.real_delay.keys():
                     self.real_delay[v] = real_delay
@@ -755,7 +805,7 @@ class World(object):
                 planned_tt = float(lane_length)/speed
                 real_delay = lane[-1] - planned_tt if lane[-1]>planned_tt else 0.
                 # Add additional delay due to start time
-                if lane[0][-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
+                if lane[0][:-2] == self.flows_list[flow_id]['route'][0]: # is lane on first link
                     real_delay += (lane[1]) - self.flows_list[flow_id]['startTime']
 
                 if v not in self.real_passenger_delay.keys():
@@ -767,9 +817,6 @@ class World(object):
         for dic in self.real_passenger_delay.items():
             avg_passenger_delay += dic[1]
         avg_delay = avg_passenger_delay / count
-
-        import pdb
-        pdb.set_trace()
         return avg_delay
 
 

@@ -4,6 +4,7 @@ includes:
 model:
   name: frap
   model_type: passenger
+  eff_pass_press: True
   n_layers: 2
   rotation: true
   conflict_matrix: true
@@ -26,7 +27,7 @@ trainer:
   steps: 3600 
   test_steps: 3600 
   action_interval: 20
-  episodes: 100
+  episodes: 500
   update_model_rate: 1
   update_target_rate: 10
   # loss_function: mean_squared_error
