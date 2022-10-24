@@ -4,7 +4,7 @@ includes:
 
 model:
   name: presslight
-  model_type: passenger
+  model_type: original
   eff_pass_press: True
   d_dense: 32
   n_layer: 3

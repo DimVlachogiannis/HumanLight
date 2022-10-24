@@ -116,7 +116,7 @@ class PressLightAgent(RLAgent):
     def get_reward(self):
         rewards = []
         rewards.append(self.reward_generator.generate())
-        rewards = np.squeeze(np.array(rewards)*0.1)
+        rewards = np.squeeze(np.array(reward))
         return rewards
 
     def get_phase(self):
