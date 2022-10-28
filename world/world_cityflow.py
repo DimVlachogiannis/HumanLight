@@ -35,7 +35,7 @@ class Intersection(object):
         self.out_roads = None
         self.in_roads = None
 
-        map_name = Registry.mapping['world_mapping']['traffic_setting'].param['network']
+        map_name = 'hz1x1'
         self.lane_order_cf = None
         self.lane_order_sumo = None
         if 'signal_config' in Registry.mapping['world_mapping']['traffic_setting'].param.keys():

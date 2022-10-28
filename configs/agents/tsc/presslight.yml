@@ -30,7 +30,7 @@ trainer:
   steps: 3600
   test_steps: 3600
   action_interval: 10
-  episodes: 800
+  episodes: 500
   update_model_rate: 1
   update_target_rate: 10
   meta_test_update_model_rate: 10

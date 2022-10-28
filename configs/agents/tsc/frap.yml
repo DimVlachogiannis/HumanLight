@@ -3,7 +3,7 @@ includes:
 
 model:
   name: frap
-  model_type: passenger
+  model_type: original
   eff_pass_press: True
   n_layers: 2
   rotation: true
@@ -27,7 +27,7 @@ trainer:
   steps: 3600 
   test_steps: 3600 
   action_interval: 20
-  episodes: 500
+  episodes: 1000
   update_model_rate: 1
   update_target_rate: 10
   # loss_function: mean_squared_error
@@ -39,7 +39,7 @@ logger:
   data_dir: "dataset"
   get_attention: False
   save_model: True
-  save_rate: 20
+  save_rate: 200
   train_model: True
   test_model: True
   load_model: False

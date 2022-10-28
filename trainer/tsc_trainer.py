@@ -32,8 +32,15 @@ class TSCTrainer(BaseTrainer):
         self.learning_start = Registry.mapping['trainer_mapping']['trainer_setting'].param['learning_start']
         self.update_model_rate = Registry.mapping['trainer_mapping']['trainer_setting'].param['update_model_rate']
         self.update_target_rate = Registry.mapping['trainer_mapping']['trainer_setting'].param['update_target_rate']
-        self.replay_file_dir = os.path.join(Registry.mapping['logger_mapping']['output_path'].path,
-                                            Registry.mapping['logger_mapping']['logger_setting'].param['replay_dir'])
+
+        # Replay file dir must be defined in relation to the dir folder defined in config
+        self.replay_file_dir = os.path.join('output_data/tsc', str(self.args['agent']), str(self.args['prefix']), 'replay','')
+        if not os.path.exists(os.path.join('data',self.replay_file_dir)):
+            os.makedirs(os.path.join('data',self.replay_file_dir))
+        #import pdb
+        #pdb.set_trace()
+        #os.path.join(Registry.mapping['logger_mapping']['output_path'].path,
+         #                                   Registry.mapping['logger_mapping']['logger_setting'].param['replay_dir'])
         # TODO: pass in dataset
         self.prefix = self.args['prefix']
         self.dataset = Registry.mapping['dataset_mapping'][self.args['dataset']](
@@ -91,13 +98,14 @@ class TSCTrainer(BaseTrainer):
             for a in self.agents:
                 a.reset()
             if e % self.save_rate == 0:
-                # self.env.eng.set_save_replay(True)
+                import pdb
+                pdb.set_trace()
+                self.env.eng.set_save_replay(True)
                 if not os.path.exists(self.replay_file_dir):
                     os.makedirs(self.replay_file_dir)
-                # self.env.eng.set_replay_file(self.replay_file_dir + f"/episode_{e}.txt")  # TODO: replay here
+                self.env.eng.set_replay_file(os.path.join(self.replay_file_dir, f"episode_{e}.txt"))  # TODO: replay here
             else:
-                pass
-                # self.env.eng.set_save_replay(False)
+                self.env.eng.set_save_replay(False)
             episodes_rewards = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
             episodes_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
             episodes_passenger_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)

@@ -68,7 +68,7 @@ class FRAP_DQNAgent(RLAgent):
                                                      ["lane_delay"], in_only=True, average="all",
                                                      negative=False)
 
-        map_name = self.dic_traffic_env_conf.param['network']
+        map_name = 'hz1x1'
         self.phase_pairs = self.dic_traffic_env_conf.param['signal_config'][map_name]['phase_pairs']
         self.comp_mask = self.relation()
         self.dic_phase_expansion = None
