@@ -448,7 +448,7 @@ class World(object):
                     pressure += passengers[lane]
                 if lane in out_lanes:
                     pressure -= passengers[lane]
-            pressures[i.id] = pressure
+            pressures[i.id] = pressure**2
         return pressures
 
     # return [self.dic_lane_waiting_vehicle_count_current_step[lane] for lane in self.list_entering_lanes] + \
@@ -484,7 +484,6 @@ class World(object):
         return vehicle_lane
 
     def get_passengers_per_lane(self):
-        # get the current lane of each vehicle. {vehicle_id: lane_id}
         passengers_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
         for lane in self.all_lanes:
@@ -498,6 +497,8 @@ class World(object):
     def get_efficient_lane_count(self):
         # get the current lane of each vehicle. {vehicle_id: lane_id}
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
+        yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
+        tot_drive_time = action_interval + yellow_interval
         vehicles_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
         dis = self.eng.get_vehicle_distance()
@@ -511,14 +512,15 @@ class World(object):
                     # Identify if the vehicle can have reached the intersection by the end of the decision interval
                     lane_length = self.lane_length[lane]
                     dis_covered = dis[vehicle]
-                    max_dis = dis_covered + spds[vehicle]*action_interval + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*action_interval**2
+                    max_dis = dis_covered + spds[vehicle]*tot_drive_time + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
                     if max_dis >= lane_length:
                         vehicles_per_lane[lane] += 1
         return vehicles_per_lane
 
     def get_efficient_passengers_per_lane(self):
-        # get the current lane of each vehicle. {vehicle_id: lane_id}
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
+        yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
+        tot_drive_time = action_interval + yellow_interval
         passengers_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
         dis = self.eng.get_vehicle_distance()
@@ -532,7 +534,7 @@ class World(object):
                     # Identify if the vehicle can have reached the intersection by the end of the decision interval
                     lane_length = self.lane_length[lane]
                     dis_covered = dis[vehicle]
-                    max_dis = dis_covered + spds[vehicle]*action_interval + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*action_interval**2
+                    max_dis = dis_covered + spds[vehicle]*tot_drive_time + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
                     if max_dis >= lane_length:
                         passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
         return passengers_per_lane

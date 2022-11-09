@@ -6,6 +6,8 @@ model:
   name: maxpressure
   model_type: original
   t_min: 10
+  eff_pass_press: False
+
 
 
 trainer:

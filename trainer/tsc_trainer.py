@@ -37,8 +37,7 @@ class TSCTrainer(BaseTrainer):
         self.replay_file_dir = os.path.join('output_data/tsc', str(self.args['agent']), str(self.args['prefix']), 'replay','')
         if not os.path.exists(os.path.join('data',self.replay_file_dir)):
             os.makedirs(os.path.join('data',self.replay_file_dir))
-        #import pdb
-        #pdb.set_trace()
+
         #os.path.join(Registry.mapping['logger_mapping']['output_path'].path,
          #                                   Registry.mapping['logger_mapping']['logger_setting'].param['replay_dir'])
         # TODO: pass in dataset
@@ -97,12 +96,10 @@ class TSCTrainer(BaseTrainer):
 
             for a in self.agents:
                 a.reset()
-            if e % self.save_rate == 0:
-                import pdb
-                pdb.set_trace()
+            if (e + 1) % self.save_rate == 0:
                 self.env.eng.set_save_replay(True)
-                if not os.path.exists(self.replay_file_dir):
-                    os.makedirs(self.replay_file_dir)
+#                if not os.path.exists(self.replay_file_dir):
+#                    os.makedirs(self.replay_file_dir)
                 self.env.eng.set_replay_file(os.path.join(self.replay_file_dir, f"episode_{e}.txt"))  # TODO: replay here
             else:
                 self.env.eng.set_save_replay(False)
@@ -214,7 +211,7 @@ class TSCTrainer(BaseTrainer):
             self.writeLog("TRAIN", e, cur_travel_time[0], cur_travel_time[1], mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay,real_passenger_delay, episodes_throughput, episodes_passenger_throughput)
             self.logger.info("step:{}/{}, q_loss:{}, rewards:{}, mean_pressure:{:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, passenger_queue:{}, delay:{}, passenger_delay:{}, real_delay: {}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(i, self.steps,
                                                         mean_loss, mean_reward, mean_pressure, mean_passenger_pressure, mean_queue,mean_passenger_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(episodes_throughput), int(episodes_passenger_throughput)))
-            if e % self.save_rate == 0:
+            if (e+1) % self.save_rate == 0:
                 [ag.save_model(e=e) for ag in self.agents]
             self.logger.info("episode:{}/{}, real avg travel time:{}, planned avg travel time:{}".format(e, self.episodes, cur_travel_time[0], cur_travel_time[1]))
             for j in range(len(self.world.intersections)):
@@ -394,7 +391,7 @@ class TSCTrainer(BaseTrainer):
 
     def store_vehicle_info(self, e):
         total_episodes = self.args['trainer']['episodes']
-        if e in range(total_episodes - 500, total_episodes):
+        if (e + 1) in range(total_episodes - 200, total_episodes):
             vehicle_info = self.world.vehicle_trajectory
             for v in vehicle_info.keys():
                 try:
@@ -425,6 +422,8 @@ class TSCTrainer(BaseTrainer):
             step) 
         for val in dict_counts.values():
             res += '\t' +  "%d" % int(val)
+        
+        res += '\t' + str(all_actions)
 
         temp_log_file = self.log_file.split('.log')[0]
         temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_actions_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'

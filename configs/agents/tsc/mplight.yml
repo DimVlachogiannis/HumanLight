@@ -3,6 +3,8 @@ includes:
 
 model:
   name: mplight
+  model_type: original
+  eff_pass_press: True
   train_model: True
   n_layers: 2
   rotation: true
@@ -42,7 +44,7 @@ logger:
   data_dir: "dataset"
   get_attention: False
   save_model: True
-  save_rate: 20
+  save_rate: 100
   train_model: True
   test_model: True
   load_model: False
@@ -53,6 +55,8 @@ traffic:
   n_leg: 4
   thread_num: 4
   debug: False
+  YELLOW_TIME: 4
+
 
   dic_feature_dim:
     d_cur_phase: !!python/tuple [8]

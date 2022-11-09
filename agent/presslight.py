@@ -90,10 +90,10 @@ class PressLightAgent(RLAgent):
             self.reward_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_pressure"], average="all", negative=True)
             if not self.eff_pass_press:
                 self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["passenger_lane_count"], average=None)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["lane_count"], average=None)
+                #self.add_ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["lane_count"], average=None)
             elif self.eff_pass_press:
                 self.ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["eff_passenger_lane_count"], average=None)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["eff_lane_count"], average=None)
+                #self.add_ob_generator = LaneVehicleGenerator(self.world, inter_obj, ["eff_lane_count"], average=None)
         else:
             print('Invalid model_type input in presslight.yml')
         self.phase_generator = IntersectionPhaseGenerator(self.world, inter_obj, ["phase"],

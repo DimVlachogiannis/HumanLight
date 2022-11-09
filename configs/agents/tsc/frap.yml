@@ -3,7 +3,7 @@ includes:
 
 model:
   name: frap
-  model_type: original
+  model_type: passenger
   eff_pass_press: True
   n_layers: 2
   rotation: true
@@ -13,7 +13,7 @@ model:
   learning_rate: 0.001
   batch_size: 64
   gamma: 0.95
-  epsilon: 0.1
+  epsilon: 0.30
   epsilon_decay: 0.995
   epsilon_min: 0.01
   grad_clip: 5.0
@@ -22,12 +22,12 @@ model:
 trainer: 
   thread: 4 
   ngpu: -1
-  learning_start: 1000
+  learning_start: 100
   buffer_size: 5000 
   steps: 3600 
   test_steps: 3600 
-  action_interval: 20
-  episodes: 1000
+  action_interval: 10
+  episodes: 300
   update_model_rate: 1
   update_target_rate: 10
   # loss_function: mean_squared_error
@@ -39,7 +39,7 @@ logger:
   data_dir: "dataset"
   get_attention: False
   save_model: True
-  save_rate: 200
+  save_rate: 100
   train_model: True
   test_model: True
   load_model: False
@@ -50,6 +50,7 @@ traffic:
   n_leg: 4
   thread_num: 4
   debug: False
+  YELLOW_TIME: 4
 
   dic_feature_dim:
     d_cur_phase: !!python/tuple [8]

@@ -56,8 +56,8 @@ class FRAP_DQNAgent(RLAgent):
                 self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_lane_count"], average=None)
                 self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], average=None)
             elif self.eff_pass_press:
-                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None)
+                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None,in_only = True)
         else:
             print('Invalid model_type input in presslight.yml')
         
@@ -96,15 +96,15 @@ class FRAP_DQNAgent(RLAgent):
         self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
         if self.model_type == 'original':
             self.reward_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["pressure"], average="all", negative=True)
-            self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], in_only = True, average=None)
+            self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], in_only=True, average=None)
         elif self.model_type == 'passenger':
             self.reward_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_pressure"], average="all", negative=True)
             if not self.eff_pass_press:
                 self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_lane_count"], average=None)
                 self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], average=None)
             elif self.eff_pass_press:
-                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None)
+                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None,in_only = True)
         else:
             print('Invalid model_type input in presslight.yml')
         self.queue = LaneVehicleGenerator(self.world, self.inter_obj,
@@ -137,14 +137,16 @@ class FRAP_DQNAgent(RLAgent):
     def get_ob(self):
         x_obs = []
         x_obs.append(self.ob_generator.generate())
+        if hasattr(self, 'add_ob_generator'):
+            x_obs[0] = np.concatenate((x_obs[0],self.add_ob_generator.generate()), axis = 0)
         x_obs = np.array(x_obs, dtype=np.float32)
-        return x_obs #(1,12)
+        return x_obs #(1,24)
 
     def get_reward(self):
         rewards = []
         rewards.append(self.reward_generator.generate())
         # TODO check whether to multiply 12
-        rewards = np.squeeze(np.array(rewards)) * self.num_phases
+        rewards = np.squeeze(np.array(rewards)*0.0001) * self.num_phases
         return rewards
 
     def get_phase(self):
@@ -263,7 +265,7 @@ class FRAP(nn.Module):
         self.comp_mask = competition_mask
         self.demand_shape = dic_agent_conf.param['demand_shape']      # Allows more than just queue to be used
         self.one_hot = dic_traffic_env_conf.param['one_hot']
-        self.d_out = 4      # units in demand input layer
+        self.d_out = 4     # units in demand input layer
         self.p_out = 4      # size of phase embedding
         self.lane_embed_units = 16
         relation_embed_size = 4

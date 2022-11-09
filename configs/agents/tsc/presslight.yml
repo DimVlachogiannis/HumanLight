@@ -4,7 +4,7 @@ includes:
 
 model:
   name: presslight
-  model_type: original
+  model_type: passenger
   eff_pass_press: True
   d_dense: 32
   n_layer: 3
@@ -24,13 +24,13 @@ model:
 trainer:
   thread: 4
   ngpu: -1
-  learning_start: 1000
+  learning_start: 300
   meta_test_start: 100
   buffer_size: 5000
   steps: 3600
   test_steps: 3600
   action_interval: 10
-  episodes: 500
+  episodes: 1000
   update_model_rate: 1
   update_target_rate: 10
   meta_test_update_model_rate: 10
@@ -45,7 +45,7 @@ logger:
   get_attention: False
   ave_model: True
   save_model: True
-  save_rate: 100
+  save_rate: 200
   train_model: True
   test_model: True
   load_model: False
@@ -59,7 +59,7 @@ traffic:
   ACTION_PATTERN: "set"
   NUM_INTERSECTIONS: 1
   MIN_ACTION_TIME: 10
-  YELLOW_TIME: 5
+  YELLOW_TIME: 4
   ALL_RED_TIME: 0
   NUM_PHASES: 8
   NUM_LANES: 1
