@@ -3,7 +3,7 @@ includes:
 
 model:
   name: mplight
-  model_type: original
+  model_type: passenger
   eff_pass_press: True
   train_model: True
   n_layers: 2
@@ -13,12 +13,12 @@ model:
   d_dense: 20
   learning_rate: 0.001
   batch_size: 32
-  gamma: 0.99
+  gamma: 0.95
   epsilon: 0.5
   epsilon_decay: 0.99
   epsilon_min: 0.05
   grad_clip: 5.0
-  eps_start: 1.0
+  eps_start: 0.7
   eps_end: 0.0
   eps_decay: 220
   target_update: 500
@@ -44,7 +44,7 @@ logger:
   data_dir: "dataset"
   get_attention: False
   save_model: True
-  save_rate: 100
+  save_rate: 20
   train_model: True
   test_model: True
   load_model: False
@@ -121,7 +121,15 @@ traffic:
     },
     hz4x4: {
       # phases: ['ET_WT','NT_ST','EL_WL','NL_SL','WL_WT','EL_ET','SL_ST','NL_NT']
-      phase_pairs: [[4, 10], [1, 7], [3, 9], [0, 6], [9, 10], [3, 4], [6, 7], [0, 1]],
+      phase_pairs: [[4, 10], [1, 7], [5, 11], [2, 8], [10, 11], [4, 5], [7, 8], [1, 2]],
+      valid_acts: null,
+      cf_order: {'N': 0,'E': 1,'S': 2, 'W': 3},
+      sumo_order: {'N': 2,'E': 3,'S': 0, 'W': 1}
+    },
+
+    cor_w_rt: {
+      # phases: ['ET_WT','NT_ST','EL_WL','NL_SL','WL_WT','EL_ET','SL_ST','NL_NT']
+      phase_pairs: [[4, 10,3,9], [1, 7, 0, 6], [5, 11], [2, 8], [9, 10, 11], [3, 4, 5], [6, 7, 8], [0,1, 2]],
       valid_acts: null,
       cf_order: {'N': 0,'E': 1,'S': 2, 'W': 3},
       sumo_order: {'N': 2,'E': 3,'S': 0, 'W': 1}

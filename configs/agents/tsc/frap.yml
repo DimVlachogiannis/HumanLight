@@ -3,7 +3,7 @@ includes:
 
 model:
   name: frap
-  model_type: passenger
+  model_type: original
   eff_pass_press: True
   n_layers: 2
   rotation: true

@@ -66,6 +66,8 @@ class MPLightAgent(RLAgent):
                 self.sub_agents*total_steps,
                 lambda: np.random.randint(len(self.phase_pairs)),
             )
+        self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
+        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
         self.agents_iner = self._build_model()
         
         # get generators for MPLightAgent
@@ -74,7 +76,15 @@ class MPLightAgent(RLAgent):
             node_id = inter.id
             node_idx = self.world.id2idx[node_id]
             node_obj = self.world.id2intersection[node_id]
-            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ['lane_count'], in_only=True, average=None)
+            if self.model_type == 'original':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
+            elif self.model_type == 'passenger':
+                if not self.eff_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count", "lane_count"], average=None)
+                elif self.eff_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+            else:
+                print('Invalid model_type input in mplight.yml')
             observation_generators.append((node_idx, tmp_generator))
         sorted(observation_generators, key=lambda x: x[0])  # now generator's order is according to its index in graph
         self.ob_generator = observation_generators
@@ -85,8 +95,12 @@ class MPLightAgent(RLAgent):
             node_id = inter.id
             node_idx = self.world.id2idx[node_id]
             node_obj = self.world.id2intersection[node_id]
-            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_waiting_count"],
-                                                 in_only=True, average='all', negative=True)
+            if self.model_type == 'original':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["pressure"], average="all", negative=True)
+            elif self.model_type == 'passenger':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_pressure"], average="all", negative=True)
+            else:
+                print('Invalid model_type input in mplight.yml')
             rewarding_generators.append((node_idx, tmp_generator))
         sorted(rewarding_generators, key=lambda x: x[0])  # now generator's order is according to its index in graph
         self.reward_generator = rewarding_generators
@@ -144,7 +158,15 @@ class MPLightAgent(RLAgent):
             node_id = inter.id
             node_idx = self.world.id2idx[node_id]
             node_obj = self.world.id2intersection[node_id]
-            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ['lane_count'], in_only=True, average=None)
+            if self.model_type == 'original':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
+            elif self.model_type == 'passenger':
+                if not self.eff_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count", "lane_count"], average=None)
+                elif self.eff_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+            else:
+                print('Invalid model_type input in mplight.yml')
             observation_generators.append((node_idx, tmp_generator))
         sorted(observation_generators, key=lambda x: x[0])  # now generator's order is according to its index in graph
         self.ob_generator = observation_generators
@@ -154,8 +176,12 @@ class MPLightAgent(RLAgent):
             node_id = inter.id
             node_idx = self.world.id2idx[node_id]
             node_obj = self.world.id2intersection[node_id]
-            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_waiting_count"],
-                                                 in_only=True, average='all', negative=True)
+            if self.model_type == 'original':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["pressure"], average="all", negative=True)
+            elif self.model_type == 'passenger':
+                tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_pressure"], average="all", negative=True)
+            else:
+                print('Invalid model_type input in mplight.yml')
             rewarding_generators.append((node_idx, tmp_generator))
         sorted(rewarding_generators, key=lambda x: x[0])  # now generator's order is according to its index in graph
         self.reward_generator = rewarding_generators

@@ -448,7 +448,7 @@ class World(object):
                     pressure += passengers[lane]
                 if lane in out_lanes:
                     pressure -= passengers[lane]
-            pressures[i.id] = pressure**2
+            pressures[i.id] = pressure
         return pressures
 
     # return [self.dic_lane_waiting_vehicle_count_current_step[lane] for lane in self.list_entering_lanes] + \
@@ -497,8 +497,8 @@ class World(object):
     def get_efficient_lane_count(self):
         # get the current lane of each vehicle. {vehicle_id: lane_id}
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
-        yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
-        tot_drive_time = action_interval + yellow_interval
+        #yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
+        tot_drive_time = action_interval #+ yellow_interval
         vehicles_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
         dis = self.eng.get_vehicle_distance()
@@ -519,8 +519,8 @@ class World(object):
 
     def get_efficient_passengers_per_lane(self):
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
-        yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
-        tot_drive_time = action_interval + yellow_interval
+        #yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
+        tot_drive_time = action_interval #+ yellow_interval
         passengers_per_lane = {}
         lane_vehicles = self.eng.get_lane_vehicles()
         dis = self.eng.get_vehicle_distance()

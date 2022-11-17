@@ -106,7 +106,7 @@ class FRAP_DQNAgent(RLAgent):
                 self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
                 self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None,in_only = True)
         else:
-            print('Invalid model_type input in presslight.yml')
+            print('Invalid model_type input in frap.yml')
         self.queue = LaneVehicleGenerator(self.world, self.inter_obj,
                                                      ["lane_waiting_count"], in_only=True,
                                                      negative=False)
