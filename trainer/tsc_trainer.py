@@ -96,7 +96,7 @@ class TSCTrainer(BaseTrainer):
 
             for a in self.agents:
                 a.reset()
-            if (e + 1) % self.save_rate == 0:
+            if ((e + 1) % self.save_rate == 0) or (e > self.episodes-5):
                 self.env.eng.set_save_replay(True)
 #                if not os.path.exists(self.replay_file_dir):
 #                    os.makedirs(self.replay_file_dir)
@@ -123,7 +123,11 @@ class TSCTrainer(BaseTrainer):
                     if total_decision_num > self.learning_start:
                         actions = []
                         for idx, ag in enumerate(self.agents):
-                            actions.append(ag.get_action(last_obs[idx], last_phase[idx], test=False))
+                            try:
+                                actions.append(ag.get_action(last_obs[idx], last_phase[idx], test=False))
+                            except:
+                                import pdb
+                                pdb.set_trace()
                         actions = np.stack(actions)  # [agent, intersections]
                     else:
                         actions = np.stack([ag.sample() for ag in self.agents])
@@ -391,7 +395,7 @@ class TSCTrainer(BaseTrainer):
 
     def store_vehicle_info(self, e):
         total_episodes = self.args['trainer']['episodes']
-        if (e + 1) in range(total_episodes - 200, total_episodes):
+        if (e + 1) in range(total_episodes - 50, total_episodes):
             vehicle_info = self.world.vehicle_trajectory
             for v in vehicle_info.keys():
                 try:

@@ -100,7 +100,6 @@ class Intersection(object):
             self.phase_available_lanelinks.append(phase_available_lanelinks)
             phase_available_startlanes = list(set(phase_available_startlanes))
             self.phase_available_startlanes.append(phase_available_startlanes)
-
         self.reset()
 
     def insert_road(self, road, out):
