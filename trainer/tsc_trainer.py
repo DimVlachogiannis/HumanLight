@@ -228,8 +228,10 @@ class TSCTrainer(BaseTrainer):
 
     def train_test(self, e):
         obs = self.env.reset()
+        agents_ids = []
         for a in self.agents:
             a.reset()
+            agents_ids.append(a.inter_obj.id)
         ep_rwds = [0 for _ in range(len(self.world.intersections))]
         episodes_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         episodes_passenger_pressures = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
@@ -242,7 +244,9 @@ class TSCTrainer(BaseTrainer):
 
         ep_throughput = 0
         eps_nums = 0
-        all_actions = []
+        all_actions = {i:[] for i in range(len(self.world.intersections))}
+        all_actions['ids'] = [i.id for i in (self.world.intersections)]
+        all_actions_0 = []
         for i in range(self.test_steps):
             if i % self.action_interval == 0:
                 phases = np.stack([ag.get_phase() for ag in self.agents])
@@ -251,13 +255,15 @@ class TSCTrainer(BaseTrainer):
                     actions.append(ag.get_action(obs[idx], phases[idx], test=True))
                 actions = np.stack(actions)
                 # Works for 1 intersection case, TODO: fix for corridor
-                all_actions.append(actions[0][0])
+                all_actions_0.append(actions[0][0])
+                for i,action in enumerate(actions[0]):
+                    all_actions[i].append(int(action))
                 rewards_list = []
                 for _ in range(self.action_interval):
                     obs, rewards, dones, _ = self.env.step(actions.flatten())  # make sure action is [intersection]
                     i += 1
                     rewards_list.append(np.stack(rewards))
-                for ag in self.agents:
+                for ag in self.agents: 
                     episodes_pressures += np.array(list(ag.world.get_pressure().values()),dtype = np.int32)
                     episodes_passenger_pressures += np.array(list(ag.world.get_passenger_pressure().values()),dtype = np.int32)                         
                 ep_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
@@ -277,6 +283,8 @@ class TSCTrainer(BaseTrainer):
 
         mean_queue = np.sum(ep_queue) / (eps_nums * len(self.world.intersections))
         mean_passenger_queue = np.sum(episodes_passenger_queue) / (eps_nums * len(self.world.intersections))
+        mean_queue_per_inter = (ep_queue) / (eps_nums)
+        mean_passenger_queue_per_inter = (episodes_passenger_queue) / (eps_nums)
 
         mean_delay = np.sum(ep_delay) / (eps_nums * len(self.world.intersections))
         mean_passenger_delay = np.sum(ep_passenger_delay) / (eps_nums * len(self.world.intersections))
@@ -292,7 +300,10 @@ class TSCTrainer(BaseTrainer):
 
         self.logger.info("Test step:{}/{}, real travel time :{}, planned travel time:{}, rewards:{}, mean_pressure: {:.2f}, mean_passenger_pressure: {:.2f}, queue:{}, delay:{}, passenger_delay:{}, real_delay:{}, real_passenger_delay:{}, throughput:{}, passenger_throughput:{}".format(e, self.steps, trv_time[0], trv_time[1], mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_delay, mean_passenger_delay, real_delay, real_passenger_delay, int(ep_throughput), int(ep_passenger_throughput)))
         self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
-        self.store_actions_taken(e, all_actions)
+        self.store_actions_taken(e, all_actions_0)
+        self.write_intersectionLog("TEST",e,mean_queue_per_inter, mean_passenger_queue_per_inter)
+        if e > self.episodes - 10:
+            self.store_all_actions(e, all_actions)
 
         return trv_time
 
@@ -435,3 +446,26 @@ class TSCTrainer(BaseTrainer):
         log_handle.write(res + "\n")
         log_handle.close()
 
+    def store_all_actions(self, step, all_actions):
+        """
+        :param step: int
+        """
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_all_actions_ep_' + str(step) + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.json'
+        with open(temp_log_file, "w") as outfile:
+            json.dump(all_actions, outfile)
+
+    def write_intersectionLog(self, mode, step,mean_queue_per_inter, mean_passenger_queue_per_inter):
+        """
+        :param mode: "TRAIN" OR "TEST"
+        :param step: int
+        """
+
+        res = self.args['model']['name'] + '\t' + mode + '\t' + str(
+            step) + '\t' + str(mean_queue_per_inter) + '\t' + str(mean_passenger_queue_per_inter)
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + 'queues_per_inter_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
+        log_handle = open(temp_log_file, "a")
+        log_handle.write(res + "\n")
+        log_handle.close()
+    

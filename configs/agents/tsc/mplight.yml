@@ -4,7 +4,7 @@ includes:
 model:
   name: mplight
   model_type: passenger
-  eff_pass_press: False
+  eff_pass_press: True
   train_model: True
   n_layers: 2
   rotation: true
@@ -13,7 +13,7 @@ model:
   d_dense: 20
   learning_rate: 0.001
   batch_size: 32
-  gamma: 0
+  gamma: 0.6
   epsilon: 0.5
   epsilon_decay: 0.99
   epsilon_min: 0.05
