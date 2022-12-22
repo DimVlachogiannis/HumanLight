@@ -5,6 +5,7 @@ from environment import TSCEnv
 from common.registry import Registry
 from trainer.base_trainer import BaseTrainer
 import json
+import cityflow
 
 @Registry.register_trainer("tsc")
 class TSCTrainer(BaseTrainer):
@@ -96,7 +97,7 @@ class TSCTrainer(BaseTrainer):
 
             for a in self.agents:
                 a.reset()
-            if ((e + 1) % self.save_rate == 0) or (e > self.episodes-5):
+            if ((e + 1) % self.save_rate == 0) or (e > self.episodes-3):
                 self.env.eng.set_save_replay(True)
 #                if not os.path.exists(self.replay_file_dir):
 #                    os.makedirs(self.replay_file_dir)
@@ -247,7 +248,19 @@ class TSCTrainer(BaseTrainer):
         all_actions = {i:[] for i in range(len(self.world.intersections))}
         all_actions['ids'] = [i.id for i in (self.world.intersections)]
         all_actions_0 = []
+
+        if e > self.episodes - 3:
+            all_speeds = {str(i):[] for i in range(len(self.world.flows_list))}
+
         for i in range(self.test_steps):
+            if e > self.episodes - 3:  
+                _speeds = self.world.eng.get_vehicle_speed()
+                for v in range(len(self.world.flows_list)):
+                    if ('flow_' + str(v) + '_0') not in _speeds.keys():
+                        all_speeds[str(v)].append(0)
+                    else:
+                        all_speeds[str(v)].append(_speeds['flow_' + str(v) + '_0'])
+
             if i % self.action_interval == 0:
                 phases = np.stack([ag.get_phase() for ag in self.agents])
                 actions = []
@@ -304,7 +317,8 @@ class TSCTrainer(BaseTrainer):
         self.write_intersectionLog("TEST",e,mean_queue_per_inter, mean_passenger_queue_per_inter)
         if e > self.episodes - 10:
             self.store_all_actions(e, all_actions)
-
+        if 'all_speeds' in vars():
+            self.store_all_speeds(e, all_speeds)
         return trv_time
 
     def test(self, drop_load=True):
@@ -454,6 +468,15 @@ class TSCTrainer(BaseTrainer):
         temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_all_actions_ep_' + str(step) + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.json'
         with open(temp_log_file, "w") as outfile:
             json.dump(all_actions, outfile)
+
+    def store_all_speeds(self, step, all_speeds):
+        """
+        :param step: int
+        """
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + '_all_speeds_ep_' + str(step) + '_config' + self.world.config_num + '_' + self.world.world_creation_time + '.json'
+        with open(temp_log_file, "w") as outfile:
+            json.dump(all_speeds, outfile)
 
     def write_intersectionLog(self, mode, step,mean_queue_per_inter, mean_passenger_queue_per_inter):
         """

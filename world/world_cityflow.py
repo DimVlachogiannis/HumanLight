@@ -421,11 +421,13 @@ class World(object):
 
     def get_passenger_pressure(self):
         eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        superscript_pass_press = Registry.mapping['model_mapping']['model_setting'].param['superscript_pass_press']
 
         if not eff_pass_press:
             passengers = self.get_passengers_per_lane()
         elif eff_pass_press:
             passengers = self.get_efficient_passengers_per_lane()
+            passengers_outgoing = self.get_efficient_passengers_per_outgoing_lane()
 
         pressures = {}
         for i in self.intersections:
@@ -446,8 +448,11 @@ class World(object):
                 if lane in in_lanes:
                     pressure += passengers[lane]
                 if lane in out_lanes:
-                    pressure -= passengers[lane]
-            pressures[i.id] = pressure
+                    if not eff_pass_press:
+                        pressure -= passengers[lane]
+                    elif eff_pass_press:
+                        pressure -= passengers_outgoing[lane]
+            pressures[i.id] = pressure**superscript_pass_press
         return pressures
 
     # return [self.dic_lane_waiting_vehicle_count_current_step[lane] for lane in self.list_entering_lanes] + \
@@ -535,6 +540,28 @@ class World(object):
                     dis_covered = dis[vehicle]
                     max_dis = dis_covered + spds[vehicle]*tot_drive_time + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
                     if max_dis >= lane_length:
+                        passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+        return passengers_per_lane
+
+    def get_efficient_passengers_per_outgoing_lane(self):
+        action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
+        #yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
+        tot_drive_time = action_interval #+ yellow_interval
+        passengers_per_lane = {}
+        lane_vehicles = self.eng.get_lane_vehicles()
+        dis = self.eng.get_vehicle_distance()
+        spds = self.eng.get_vehicle_speed()
+
+        for lane in self.all_lanes:
+            passengers_per_lane[lane] = 0
+            if len(lane_vehicles[lane]) > 0:
+                for vehicle in lane_vehicles[lane]:
+                    flow_id = int(vehicle.split('_')[1])
+                    # Identify if the vehicle can have reached the intersection by the end of the decision interval
+                    lane_length = self.lane_length[lane]
+                    dis_covered = dis[vehicle]
+                    min_dis = dis_covered - spds[vehicle]*tot_drive_time - 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
+                    if min_dis <= 0:
                         passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
         return passengers_per_lane
 

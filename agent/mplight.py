@@ -80,7 +80,7 @@ class MPLightAgent(RLAgent):
                 tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
             elif self.model_type == 'passenger':
                 if not self.eff_pass_press:
-                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count", "lane_count"], average=None)
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count"], average=None,in_only = True)
                 elif self.eff_pass_press:
                     tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
             else:
@@ -162,7 +162,7 @@ class MPLightAgent(RLAgent):
                 tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
             elif self.model_type == 'passenger':
                 if not self.eff_pass_press:
-                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count", "lane_count"], average=None)
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count"], average=None,in_only = True)
                 elif self.eff_pass_press:
                     tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
             else:
