@@ -4,7 +4,7 @@ import os.path as osp
 from turtle import pd
 import cityflow
 from common.registry import Registry
-
+from math import exp, log
 import numpy as np
 from math import atan2, pi
 import sys
@@ -446,13 +446,15 @@ class World(object):
                     out_lanes.append(road["id"] + "_" + str(n))
             for lane in passengers.keys():
                 if lane in in_lanes:
-                    pressure += passengers[lane]
+                    pressure += int(passengers[lane]**superscript_pass_press)
                 if lane in out_lanes:
                     if not eff_pass_press:
-                        pressure -= passengers[lane]
+                        pressure -= int(passengers[lane]**superscript_pass_press)
                     elif eff_pass_press:
-                        pressure -= passengers_outgoing[lane]
-            pressures[i.id] = pressure**superscript_pass_press
+                        pressure -= int(passengers_outgoing[lane]**superscript_pass_press)
+            pressures[i.id] = pressure 
+            #int(exp(log(pressure)/superscript_pass_press)
+            # (pressure**superscript_pass_press).astype(int)
         return pressures
 
     # return [self.dic_lane_waiting_vehicle_count_current_step[lane] for lane in self.list_entering_lanes] + \
@@ -540,7 +542,8 @@ class World(object):
                     dis_covered = dis[vehicle]
                     max_dis = dis_covered + spds[vehicle]*tot_drive_time + 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
                     if max_dis >= lane_length:
-                        passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+                        passengers_per_lane[lane] += (self.flows_list[flow_id]['vehicle']['occupancy']**superscript_pass_press)
+                passengers_per_lane[lane] = int(passengers_per_lane[lane])
         return passengers_per_lane
 
     def get_efficient_passengers_per_outgoing_lane(self):

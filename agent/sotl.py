@@ -14,6 +14,8 @@ class SOTLAgent(RLAgent):
         super().__init__(world,world.intersection_ids[rank])
         self.world = world
         self.rank = rank
+        self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
+        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
         # some threshold to deal with phase requests
         self.min_green_vehicle = Registry.mapping['model_mapping']['model_setting'].param['min_green_vehicle']
         self.max_red_vehicle = Registry.mapping['model_mapping']['model_setting'].param['max_red_vehicle']
@@ -36,6 +38,7 @@ class SOTLAgent(RLAgent):
                                                     ["lane_delay"], in_only=True,
                                                     negative=False)
         self.action_space = gym.spaces.Discrete(len(self.inter.phases))
+
 
     def reset(self):
         inter_id = self.world.intersection_ids[self.rank]

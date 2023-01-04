@@ -5,10 +5,9 @@ includes:
 model:
   name: maxpressure
   model_type: original
-  t_min: 10
+  t_min: 21
   eff_pass_press: False
-
-
+  superscript_pass_press: 1
 
 trainer:
   thread: 4
