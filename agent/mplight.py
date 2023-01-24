@@ -129,6 +129,18 @@ class MPLightAgent(RLAgent):
         sorted(queues, key=lambda x: x[0])
         self.queue = queues
 
+        #  get passenger queue generator
+        passenger_queues = []
+        for inter in self.world.intersections:
+            node_id = inter.id
+            node_idx = self.world.id2idx[node_id]
+            node_obj = self.world.id2intersection[node_id]
+            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_passenger_waiting_count"], 
+                                                 in_only=True, negative=False)
+            passenger_queues.append((node_idx, tmp_generator))
+        sorted(passenger_queues, key=lambda x: x[0])
+        self.passenger_queue = passenger_queues
+
         #  get delay generator
         delays = []
         for inter in self.world.intersections:
@@ -140,6 +152,18 @@ class MPLightAgent(RLAgent):
             delays.append((node_idx, tmp_generator))
         sorted(delays, key=lambda x: x[0])
         self.delay = delays
+
+        #  get delay generator
+        passenger_delays = []
+        for inter in self.world.intersections:
+            node_id = inter.id
+            node_idx = self.world.id2idx[node_id]
+            node_obj = self.world.id2intersection[node_id]
+            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_delay"], 
+                                                 in_only=True, average="all", negative=False)
+            passenger_delays.append((node_idx, tmp_generator))
+        sorted(passenger_delays, key=lambda x: x[0])
+        self.passenger_delay = passenger_delays
 
         # TODO check ob_length, compared with presslight and original mplight and RESCO-mplight
         # this is extracted from presslight so far
@@ -208,6 +232,18 @@ class MPLightAgent(RLAgent):
         sorted(queues, key=lambda x: x[0])
         self.queue = queues
 
+        #  get passenger queue generator
+        passenger_queues = []
+        for inter in self.world.intersections:
+            node_id = inter.id
+            node_idx = self.world.id2idx[node_id]
+            node_obj = self.world.id2intersection[node_id]
+            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_passenger_waiting_count"], 
+                                                 in_only=True, negative=False)
+            passenger_queues.append((node_idx, tmp_generator))
+        sorted(passenger_queues, key=lambda x: x[0])
+        self.passenger_queue = passenger_queues
+
         delays = []
         for inter in self.world.intersections:
             node_id = inter.id
@@ -218,7 +254,18 @@ class MPLightAgent(RLAgent):
             delays.append((node_idx, tmp_generator))
         sorted(delays, key=lambda x: x[0])
         self.delay = delays
-    
+
+        #  get delay generator
+        passenger_delays = []
+        for inter in self.world.intersections:
+            node_id = inter.id
+            node_idx = self.world.id2idx[node_id]
+            node_obj = self.world.id2intersection[node_id]
+            tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_delay"], 
+                                                 in_only=True, average="all", negative=False)
+            passenger_delays.append((node_idx, tmp_generator))
+        sorted(passenger_delays, key=lambda x: x[0])
+        self.passenger_delay = passenger_delays   
     def relation(self):
         comp_mask = []
         for i in range(len(self.phase_pairs)):
@@ -321,12 +368,37 @@ class MPLightAgent(RLAgent):
         else:
             queue = [np.sum(x) for x in tmp_queue]
         # queue = np.sum(tmp_queue, axis=1 if len(tmp_queue.shape)==1 else 0)
+        #import pdb
+        #pdb.set_trace()
+        return queue # [intersections,]
+
+    def get_passenger_queue(self):
+        """
+        get delay of intersection
+        return: value(one intersection) or [intersections,](multiple intersections)
+        """
+        queue = []
+        for i in range(len(self.passenger_queue)):
+            queue.append((self.passenger_queue[i][1].generate()))
+        tmp_queue = np.squeeze(np.array(queue))
+        if self.sub_agents == 1:
+            queue = np.sum(tmp_queue)
+        else:
+            queue = [np.sum(x) for x in tmp_queue]
+        # queue = np.sum(tmp_queue, axis=1 if len(tmp_queue.shape)==1 else 0)
         return queue # [intersections,]
 
     def get_delay(self):
         delay = []
         for i in range(len(self.delay)):
             delay.append((self.delay[i][1].generate()))
+        delay = np.squeeze(np.array(delay))
+        return delay # [intersections,]
+
+    def get_passenger_delay(self):
+        delay = []
+        for i in range(len(self.passenger_delay)):
+            delay.append((self.passenger_delay[i][1].generate()))
         delay = np.squeeze(np.array(delay))
         return delay # [intersections,]
 

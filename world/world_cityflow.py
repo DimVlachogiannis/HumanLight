@@ -421,7 +421,6 @@ class World(object):
 
     def get_passenger_pressure(self):
         eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
-        superscript_pass_press = Registry.mapping['model_mapping']['model_setting'].param['superscript_pass_press']
 
         if not eff_pass_press:
             passengers = self.get_passengers_per_lane()
@@ -446,12 +445,12 @@ class World(object):
                     out_lanes.append(road["id"] + "_" + str(n))
             for lane in passengers.keys():
                 if lane in in_lanes:
-                    pressure += int(passengers[lane]**superscript_pass_press)
+                    pressure += int(passengers[lane])
                 if lane in out_lanes:
                     if not eff_pass_press:
-                        pressure -= int(passengers[lane]**superscript_pass_press)
+                        pressure -= int(passengers[lane])
                     elif eff_pass_press:
-                        pressure -= int(passengers_outgoing[lane]**superscript_pass_press)
+                        pressure -= int(passengers_outgoing[lane])
             pressures[i.id] = pressure 
             #int(exp(log(pressure)/superscript_pass_press)
             # (pressure**superscript_pass_press).astype(int)
@@ -524,6 +523,7 @@ class World(object):
         return vehicles_per_lane
 
     def get_efficient_passengers_per_lane(self):
+        superscript_pass_press = Registry.mapping['model_mapping']['model_setting'].param['superscript_pass_press']
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
         #yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
         tot_drive_time = action_interval #+ yellow_interval
@@ -547,6 +547,7 @@ class World(object):
         return passengers_per_lane
 
     def get_efficient_passengers_per_outgoing_lane(self):
+        superscript_pass_press = Registry.mapping['model_mapping']['model_setting'].param['superscript_pass_press']
         action_interval = Registry.mapping['trainer_mapping']['trainer_setting'].param['action_interval']
         #yellow_interval = Registry.mapping['world_mapping']['traffic_setting'].param['YELLOW_TIME']
         tot_drive_time = action_interval #+ yellow_interval
@@ -565,7 +566,8 @@ class World(object):
                     dis_covered = dis[vehicle]
                     min_dis = dis_covered - spds[vehicle]*tot_drive_time - 0.5*self.flows_list[flow_id]['vehicle']['maxPosAcc']*tot_drive_time**2
                     if min_dis <= 0:
-                        passengers_per_lane[lane] += self.flows_list[flow_id]['vehicle']['occupancy']
+                        passengers_per_lane[lane] += (self.flows_list[flow_id]['vehicle']['occupancy']**superscript_pass_press)
+                passengers_per_lane[lane] = int(passengers_per_lane[lane])
         return passengers_per_lane
 
     def get_passengers_per_lane_multiplier(self):

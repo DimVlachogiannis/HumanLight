@@ -5,7 +5,7 @@ includes:
 model:
   name: maxpressure
   model_type: original
-  t_min: 21
+  t_min: 11
   eff_pass_press: False
   superscript_pass_press: 1
 
@@ -16,7 +16,7 @@ trainer:
   buffer_size: 0
   steps: 3600
   test_steps: 3600
-  action_interval: 10
+  action_interval: 41
   learning_rate: 0
   learning_start: 0
   update_model_rate: 0
