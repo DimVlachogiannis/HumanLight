@@ -8,7 +8,7 @@ model:
   max_red_vehicle: 3
   t_min: 2
   model_type: original
-  eff_pass_press: False
+  act_pass_press: False
   superscript_pass_press: 1
 
 

@@ -67,7 +67,7 @@ class MPLightAgent(RLAgent):
                 lambda: np.random.randint(len(self.phase_pairs)),
             )
         self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
-        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        self.act_pass_press = Registry.mapping['model_mapping']['model_setting'].param['act_pass_press']
         self.agents_iner = self._build_model()
         
         # get generators for MPLightAgent
@@ -79,10 +79,10 @@ class MPLightAgent(RLAgent):
             if self.model_type == 'original':
                 tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
             elif self.model_type == 'passenger':
-                if not self.eff_pass_press:
+                if not self.act_pass_press:
                     tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count"], average=None,in_only = True)
-                elif self.eff_pass_press:
-                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+                elif self.act_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["act_passenger_lane_count"], average=None,in_only = True)
             else:
                 print('Invalid model_type input in mplight.yml')
             observation_generators.append((node_idx, tmp_generator))
@@ -185,10 +185,10 @@ class MPLightAgent(RLAgent):
             if self.model_type == 'original':
                 tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["lane_count"], in_only=True, average=None)
             elif self.model_type == 'passenger':
-                if not self.eff_pass_press:
+                if not self.act_pass_press:
                     tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["passenger_lane_count"], average=None,in_only = True)
-                elif self.eff_pass_press:
-                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
+                elif self.act_pass_press:
+                    tmp_generator = LaneVehicleGenerator(self.world, node_obj, ["act_passenger_lane_count"], average=None,in_only = True)
             else:
                 print('Invalid model_type input in mplight.yml')
             observation_generators.append((node_idx, tmp_generator))

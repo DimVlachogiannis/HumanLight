@@ -4,7 +4,7 @@ includes:
 model:
   name: frap
   model_type: original
-  eff_pass_press: True
+  act_pass_press: True
   n_layers: 2
   rotation: true
   conflict_matrix: true

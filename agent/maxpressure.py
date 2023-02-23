@@ -37,7 +37,7 @@ class MaxPressureAgent(RLAgent):
         
         # the minimum duration of time of one phase
         self.t_min = Registry.mapping['model_mapping']['model_setting'].param['t_min']
-        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        self.act_pass_press = Registry.mapping['model_mapping']['model_setting'].param['act_pass_press']
 
 
     def reset(self):

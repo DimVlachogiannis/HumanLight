@@ -39,7 +39,7 @@ class FRAP_DQNAgent(RLAgent):
         self.phase = self.dic_traffic_env_conf.param['phase']
         self.one_hot = self.dic_traffic_env_conf.param['one_hot']
         self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
-        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        self.act_pass_press = Registry.mapping['model_mapping']['model_setting'].param['act_pass_press']
 
         # get generator for each Agent
         self.inter_id = self.world.intersection_ids[self.rank]
@@ -52,12 +52,12 @@ class FRAP_DQNAgent(RLAgent):
             self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], in_only=True, average=None)
         elif self.model_type == 'passenger':
             self.reward_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_pressure"], average="all", negative=True)
-            if not self.eff_pass_press:
+            if not self.act_pass_press:
                 self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_lane_count"], average=None)
                 self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], average=None)
-            elif self.eff_pass_press:
-                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None,in_only = True)
+            elif self.act_pass_press:
+                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["act_passenger_lane_count"], average=None,in_only = True)
+                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["act_lane_count"], average=None,in_only = True)
         else:
             print('Invalid model_type input in presslight.yml')
         
@@ -93,18 +93,18 @@ class FRAP_DQNAgent(RLAgent):
         self.phase_generator = IntersectionPhaseGenerator(self.world, self.inter_obj,
                                                           ['phase'], targets=['cur_phase'], negative=False)
         self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
-        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        self.act_pass_press = Registry.mapping['model_mapping']['model_setting'].param['act_pass_press']
         if self.model_type == 'original':
             self.reward_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["pressure"], average="all", negative=True)
             self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], in_only=True, average=None)
         elif self.model_type == 'passenger':
             self.reward_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_pressure"], average="all", negative=True)
-            if not self.eff_pass_press:
+            if not self.act_pass_press:
                 self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["passenger_lane_count"], average=None)
                 self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["lane_count"], average=None)
-            elif self.eff_pass_press:
-                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_passenger_lane_count"], average=None,in_only = True)
-                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["eff_lane_count"], average=None,in_only = True)
+            elif self.act_pass_press:
+                self.ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["act_passenger_lane_count"], average=None,in_only = True)
+                self.add_ob_generator = LaneVehicleGenerator(self.world, self.inter_obj, ["act_lane_count"], average=None,in_only = True)
         else:
             print('Invalid model_type input in frap.yml')
         self.queue = LaneVehicleGenerator(self.world, self.inter_obj,

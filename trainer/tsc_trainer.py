@@ -221,7 +221,7 @@ class TSCTrainer(BaseTrainer):
             self.logger.info("episode:{}/{}, real avg travel time:{}, planned avg travel time:{}".format(e, self.episodes, cur_travel_time[0], cur_travel_time[1]))
             for j in range(len(self.world.intersections)):
                 self.logger.debug("intersection:{}, mean_episode_reward:{}, mean_queue:{}".format(j, episodes_rewards[j] / episodes_decision_num, episodes_queue[j]/episodes_decision_num, episodes_delay[j]/episodes_decision_num))
-            if self.test_when_train:
+            if (self.test_when_train) & (e>150):
                 self.train_test(e)
                 #self.test(False)
         # self.dataset.flush([ag.replay_buffer for ag in self.agents])

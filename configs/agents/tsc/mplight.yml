@@ -4,7 +4,7 @@ includes:
 model:
   name: mplight
   model_type: passenger
-  eff_pass_press: True
+  act_pass_press: True
   superscript_pass_press: 1
   train_model: True
   n_layers: 2

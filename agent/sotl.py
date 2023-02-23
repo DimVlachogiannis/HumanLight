@@ -15,7 +15,7 @@ class SOTLAgent(RLAgent):
         self.world = world
         self.rank = rank
         self.model_type = Registry.mapping['model_mapping']['model_setting'].param['model_type']
-        self.eff_pass_press = Registry.mapping['model_mapping']['model_setting'].param['eff_pass_press']
+        self.act_pass_press = Registry.mapping['model_mapping']['model_setting'].param['act_pass_press']
         # some threshold to deal with phase requests
         self.min_green_vehicle = Registry.mapping['model_mapping']['model_setting'].param['min_green_vehicle']
         self.max_red_vehicle = Registry.mapping['model_mapping']['model_setting'].param['max_red_vehicle']
