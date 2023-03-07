@@ -372,6 +372,25 @@ class MPLightAgent(RLAgent):
         #pdb.set_trace()
         return queue # [intersections,]
 
+
+    def get_max_queue(self):
+        """
+        get delay of intersection
+        return: value(one intersection) or [intersections,](multiple intersections)
+        """
+        queue = []
+        for i in range(len(self.queue)):
+            queue.append((self.queue[i][1].generate()))
+        tmp_queue = np.squeeze(np.array(queue))
+        if self.sub_agents == 1:
+            queue = np.max(tmp_queue)
+        else:
+            queue = [np.max(x) for x in tmp_queue]
+        # queue = np.sum(tmp_queue, axis=1 if len(tmp_queue.shape)==1 else 0)
+        #import pdb
+        #pdb.set_trace()
+        return queue # [intersections,]
+
     def get_passenger_queue(self):
         """
         get delay of intersection

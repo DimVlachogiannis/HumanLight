@@ -393,7 +393,6 @@ class World(object):
 
         return passengers_queue
 
-
     def get_pressure(self):
         vehicles = self.eng.get_lane_vehicle_count()
         pressures = {}

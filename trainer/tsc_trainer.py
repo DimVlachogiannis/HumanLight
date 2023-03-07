@@ -221,7 +221,7 @@ class TSCTrainer(BaseTrainer):
             self.logger.info("episode:{}/{}, real avg travel time:{}, planned avg travel time:{}".format(e, self.episodes, cur_travel_time[0], cur_travel_time[1]))
             for j in range(len(self.world.intersections)):
                 self.logger.debug("intersection:{}, mean_episode_reward:{}, mean_queue:{}".format(j, episodes_rewards[j] / episodes_decision_num, episodes_queue[j]/episodes_decision_num, episodes_delay[j]/episodes_decision_num))
-            if (self.test_when_train) & (e>150):
+            if (self.test_when_train) & (e>-1):
                 self.train_test(e)
                 #self.test(False)
         # self.dataset.flush([ag.replay_buffer for ag in self.agents])
@@ -239,6 +239,8 @@ class TSCTrainer(BaseTrainer):
 
         ep_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         episodes_passenger_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
+
+        ep_max_queue = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
 
         ep_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
         ep_passenger_delay = np.array([0 for _ in range(len(self.world.intersections))], dtype=np.float32)
@@ -281,6 +283,7 @@ class TSCTrainer(BaseTrainer):
                     episodes_passenger_pressures += np.array(list(ag.world.get_passenger_pressure().values()),dtype = np.int32)                         
                 ep_queue += (np.stack(np.array([ag.get_queue() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
                 episodes_passenger_queue += (np.stack(np.array([ag.get_passenger_queue() for ag in self.agents], dtype=np.float32))).flatten() # [intersections,]
+                ep_max_queue += (np.stack(np.array([ag.get_max_queue() for ag in self.agents], dtype=np.float32))).flatten() # Max queue of intersections
                 ep_delay += (np.stack(np.array([ag.get_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
                 ep_passenger_delay += (np.stack(np.array([ag.get_passenger_delay() for ag in self.agents], dtype=np.float32))).flatten() # avg_queue of intersections
                 rewards = np.mean(rewards_list, axis=0)
@@ -298,6 +301,7 @@ class TSCTrainer(BaseTrainer):
         mean_passenger_queue = np.sum(episodes_passenger_queue) / (eps_nums * len(self.world.intersections))
         mean_queue_per_inter = (ep_queue) / (eps_nums)
         mean_passenger_queue_per_inter = (episodes_passenger_queue) / (eps_nums)
+        max_queue_per_inter = (ep_max_queue) / (eps_nums)
 
         mean_delay = np.sum(ep_delay) / (eps_nums * len(self.world.intersections))
         mean_passenger_delay = np.sum(ep_passenger_delay) / (eps_nums * len(self.world.intersections))
@@ -315,6 +319,8 @@ class TSCTrainer(BaseTrainer):
         self.writeLog("TEST", e, trv_time[0], trv_time[1], 100, mean_rwd, mean_pressure, mean_passenger_pressure, mean_queue, mean_passenger_queue, mean_delay,mean_passenger_delay, real_delay, real_passenger_delay, ep_throughput, ep_passenger_throughput)
         self.store_actions_taken(e, all_actions_0)
         self.write_intersectionLog("TEST",e,mean_queue_per_inter, mean_passenger_queue_per_inter)
+        self.write_intersection_maxqueue_Log("TEST",e,max_queue_per_inter)
+
         if e > self.episodes - 10:
             self.store_all_actions(e, all_actions)
         if 'all_speeds' in vars():
@@ -491,4 +497,17 @@ class TSCTrainer(BaseTrainer):
         log_handle = open(temp_log_file, "a")
         log_handle.write(res + "\n")
         log_handle.close()
-    
+
+    def write_intersection_maxqueue_Log(self, mode, step,max_queue_per_inter):
+        """
+        :param mode: "TRAIN" OR "TEST"
+        :param step: int
+        """
+
+        res = self.args['model']['name'] + '\t' + mode + '\t' + str(
+            step) + '\t' + str(max_queue_per_inter)
+        temp_log_file = self.log_file.split('.log')[0]
+        temp_log_file = temp_log_file + '_' + self.args['model']['model_type'] + 'max_queues_per_inter_config' + self.world.config_num + '_' + self.world.world_creation_time + '.log'
+        log_handle = open(temp_log_file, "a")
+        log_handle.write(res + "\n")
+        log_handle.close()

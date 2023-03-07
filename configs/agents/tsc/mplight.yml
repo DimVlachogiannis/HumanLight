@@ -56,7 +56,7 @@ traffic:
   n_leg: 4
   thread_num: 4
   debug: False
-  YELLOW_TIME: 4
+  YELLOW_TIME: 3
 
 
   dic_feature_dim:
