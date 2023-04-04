@@ -3,7 +3,7 @@ This repo includes the implementation of HumanLight, a decentralized adaptive si
 
 This repo is built on top of LibSignal (https://github.com/DaRL-LibSignal/LibSignal.git) which provides OpenAI Gym compatible environments for traffic light control scenario and a bunch of baseline methods.
 
-At this moment, HumanLight can only be implemented via CityFlow. Futuer maintaining plan includes merging HumanLight into the LibSignal library.
+At this moment, HumanLight can only be implemented via CityFlow. Future maintaining plan includes merging HumanLight into the LibSignal library.
 
 # Configurations 
 ### Single Intersection <br />
