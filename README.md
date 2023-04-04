@@ -26,7 +26,18 @@ High HOV Adoption: grid_4x4>flow_config23.json <br />
 
 
 # Citation
-When using this repo, please cite the preprint that has been submitted to Elsevier for publication:
+When using this repo, please cite the preprint that has been submitted to Elsevier for publication and is available:  <br />
+[ARXIV LINK] ,and can be cited with the following bibtex entry:
+[BIBTEX LINK]
 
 
-Please also cite 
+Please also cite the whitepaper of LibSignal accepted by NeurIPS 2022 Workshop: Reinforcement Learning for Real Life is available https://arxiv.org/abs/2211.10649, and can be cited with the following bibtex entry:
+
+```
+@misc{2211.10649,
+  Author = {Mei, Hao and Lei, Xiaoliang Lei and Da, Longchao Da and Shi, Bin and Wei, Hua},
+  Title = {LibSignal: An Open Library for Traffic Signal Control},
+  Year = {2022},
+  booktitle={NeurIPS Workshop on Reinforcement Learning for Real Life},
+}
+```
