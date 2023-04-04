@@ -27,7 +27,7 @@ High HOV Adoption: grid_4x4>flow_config23.json <br />
 
 # Citation
 When using this repo, please cite the preprint that has been submitted to Elsevier for publication and is available:  <br />
-[ARXIV LINK] ,and can be cited with the following bibtex entry:
+[ARXIV LINK] ,and can be cited with the following bibtex entry: <br />
 [BIBTEX LINK]
 
 
