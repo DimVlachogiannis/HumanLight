@@ -26,9 +26,19 @@ High HOV Adoption: grid_4x4>flow_config23.json <br />
 
 
 # Citation
-When using this repo, please cite the preprint that has been submitted to Elsevier for publication and is available:  <br />
-[ARXIV LINK] ,and can be cited with the following bibtex entry: <br />
-[BIBTEX LINK]
+When using this repo, please cite the preprint that has been submitted to Elsevier for publication and is available at
+https://arxiv.org/abs/2304.03697 ,and can be cited with the following bibtex entry: <br />
+
+```
+@misc{vlachogiannis2023humanlight,
+      title={HumanLight: Incentivizing Ridesharing via Human-centric Deep Reinforcement Learning in Traffic Signal Control}, 
+      author={Dimitris M. Vlachogiannis and Hua Wei and Scott Moura and Jane Macfarlane},
+      year={2023},
+      eprint={2304.03697},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
+}
+```
 
 
 Please also cite the whitepaper of LibSignal accepted by NeurIPS 2022 Workshop: Reinforcement Learning for Real Life is available https://arxiv.org/abs/2211.10649, and can be cited with the following bibtex entry:
